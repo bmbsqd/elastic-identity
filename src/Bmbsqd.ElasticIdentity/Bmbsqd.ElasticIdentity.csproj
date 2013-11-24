@@ -63,6 +63,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Bmbsqd.ElasticIdentity.nuspec" />
+    <None Include="build.cmd" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

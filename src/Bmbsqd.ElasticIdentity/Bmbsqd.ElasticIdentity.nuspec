@@ -2,17 +2,28 @@
 <package >
 	<metadata>
 		<id>Bmbsqd.ElasticIdentity</id>
-		<version>1.0-RC1</version>
+		<version>0.1.0-RC1</version>
 		<title>Identity Provider for Elasticsearch</title>
 		<authors>BMBSQD</authors>
 		<owners>BMBSQD</owners>
-		<!--<description>$description$</description>-->
+		<description>$description$</description>
 		<licenseUrl>http://opensource.org/licenses/MIT</licenseUrl>
 		<projectUrl>https://github.com/bmbsqd/elastic-identity</projectUrl>
 		<!--<iconUrl></iconUrl>-->
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
-		<releaseNotes>Summary of changes made in this release of the package.</releaseNotes>
+		<releaseNotes>Initial release</releaseNotes>
 		<copyright>Copyright 2013</copyright>
 		<tags>identity elasticsearch ealstic search</tags>
+		<!--<references></references>-->
+		<dependencies>
+			<group>
+				<dependency id="Microsoft.AspNet.Identity.Core" version="1.0.0" />
+				<dependency id="NEST" version="0.11.7" />
+			</group>
+		</dependencies>
 	</metadata>
+	<!--<files>
+		<file src="bin\Debug\Bmbsqd.ElasticIdentity.dll" target="lib\net45" />
+		<file src="bin\Debug\Bmbsqd.ElasticIdentity.pdb" target="lib\net45" />
+	</files>-->
 </package>
