@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package >
+	<metadata>
+		<id>Bmbsqd.ElasticIdentity</id>
+		<version>1.0-RC1</version>
+		<title>Identity Provider for Elasticsearch</title>
+		<authors>BMBSQD</authors>
+		<owners>BMBSQD</owners>
+		<!--<description>$description$</description>-->
+		<licenseUrl>http://opensource.org/licenses/MIT</licenseUrl>
+		<projectUrl>https://github.com/bmbsqd/elastic-identity</projectUrl>
+		<!--<iconUrl></iconUrl>-->
+		<requireLicenseAcceptance>false</requireLicenseAcceptance>
+		<releaseNotes>Summary of changes made in this release of the package.</releaseNotes>
+		<copyright>Copyright 2013</copyright>
+		<tags>identity elasticsearch ealstic search</tags>
+	</metadata>
+</package>
