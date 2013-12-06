@@ -39,9 +39,7 @@ namespace Bmbsqd.ElasticIdentity
 			IUserClaimStore<TUser>,
 			IUserRoleStore<TUser>,
 			IUserPasswordStore<TUser>,
-			IUserSecurityStampStore<TUser>,
-			IUserStore<TUser>,
-			IDisposable
+			IUserSecurityStampStore<TUser>
 			where TUser : ElasticUser
 	{
 
