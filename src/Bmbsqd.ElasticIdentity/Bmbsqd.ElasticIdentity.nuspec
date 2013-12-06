@@ -9,10 +9,10 @@
 		<description>$description$</description>
 		<licenseUrl>http://opensource.org/licenses/MIT</licenseUrl>
 		<projectUrl>https://github.com/bmbsqd/elastic-identity</projectUrl>
-		<!--<iconUrl></iconUrl>-->
+		<!--<iconUrl>http://www.gravatar.com/avatar/6c1b5d14ac0149017ce66ca15b499c98.png?s=16&d=identicon</iconUrl>-->
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
 		<releaseNotes>Initial release</releaseNotes>
-		<copyright>Copyright 2013</copyright>
+		<copyright>© Bombsquad AB 2013</copyright>
 		<tags>identity elasticsearch ealstic search</tags>
 		<!--<references></references>-->
 		<dependencies>
@@ -22,8 +22,4 @@
 			</group>
 		</dependencies>
 	</metadata>
-	<!--<files>
-		<file src="bin\Debug\Bmbsqd.ElasticIdentity.dll" target="lib\net45" />
-		<file src="bin\Debug\Bmbsqd.ElasticIdentity.pdb" target="lib\net45" />
-	</files>-->
 </package>

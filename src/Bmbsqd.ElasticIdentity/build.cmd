@@ -1,1 +1,1 @@
-nuget pack -Verbose -Symbols -Build -OutputDirectory c:\temp 
+nuget pack -Verbosity detailed -Symbols -Build -OutputDirectory c:\temp 
