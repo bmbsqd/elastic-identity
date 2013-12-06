@@ -202,9 +202,10 @@ namespace Bmbsqd.ElasticIdentity
 		public async Task<TUser> FindAsync( UserLoginInfo login )
 		{
 			if( login == null ) throw new ArgumentNullException( "login" );
-			var result = Wrap( await _connection.SearchAsync<TUser>( search => search.Filter( filter => filter.And( 
-				f => f.Term( user => user.Logins[0].ProviderKey, login.ProviderKey ),
-				f => f.Term( user => user.Logins[0].LoginProvider, login.LoginProvider ) ) ) ) );
+			var result = Wrap( await _connection.SearchAsync<TUser>( search => search.
+				Filter( filter => 
+					filter.Term( user => user.Logins[0].ProviderKey, login.ProviderKey ) 
+					&& filter.Term( user => user.Logins[0].LoginProvider, login.LoginProvider ) ) ) );
 			return result.Documents.FirstOrDefault();
 		}
 
