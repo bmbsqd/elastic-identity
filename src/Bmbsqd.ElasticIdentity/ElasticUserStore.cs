@@ -42,6 +42,7 @@ namespace Bmbsqd.ElasticIdentity
 			IUserSecurityStampStore<TUser>
 			where TUser : ElasticUser
 	{
+		private const int _defaultSizeForAll = 1000*1000;
 
 		private readonly IElasticClient _connection;
 		public event EventHandler<ElasticUserStoreTraceEventArgs> Trace;
@@ -299,7 +300,7 @@ namespace Bmbsqd.ElasticIdentity
 
 		public async Task<IEnumerable<TUser>> GetAllAsync()
 		{
-			var result = Wrap( await _connection.SearchAsync<TUser>( search => search.MatchAll() ) );
+			var result = Wrap( await _connection.SearchAsync<TUser>( search => search.MatchAll().Size( _defaultSizeForAll ) ) );
 			return result.Documents;
 		}
 	}

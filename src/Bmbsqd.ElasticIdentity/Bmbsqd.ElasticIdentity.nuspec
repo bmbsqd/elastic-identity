@@ -2,7 +2,7 @@
 <package >
 	<metadata>
 		<id>Bmbsqd.ElasticIdentity</id>
-		<version>0.2.0.0</version>
+		<version>0.2.0.1</version>
 		<title>Identity Provider for Elasticsearch</title>
 		<authors>BMBSQD</authors>
 		<owners>BMBSQD</owners>
@@ -17,7 +17,7 @@
 		<!--<references></references>-->
 		<dependencies>
 			<group>
-				<dependency id="Microsoft.AspNet.Identity.Core" version="1.0.0" />
+				<dependency id="Microsoft.AspNet.Identity.Core" version="[1.0,2.0)" />
 				<dependency id="NEST" version="0.12.0.0" />
 			</group>
 		</dependencies>
