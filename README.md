@@ -111,4 +111,4 @@ Yes please
 Copyright and license
 ---------------------
 
-Piglet is licenced under the MIT license. Refer to LICENSE for more information.
+elastic-identity is licenced under the MIT license. Refer to LICENSE for more information.
