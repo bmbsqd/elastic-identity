@@ -66,8 +66,8 @@ namespace Bmbsqd.ElasticIdentity
 		{
 			var settings = new ConnectionSettings( connectionString )
 				.SetDefaultIndex( indexName )
-				.MapDefaultTypeIndices( t => t.Add( typeof( ElasticUser ), indexName ) )
-				.MapDefaultTypeNames( t => t.Add( typeof( ElasticUser ), entityName ) );
+				.MapDefaultTypeIndices( t => t.Add( typeof(TUser), indexName ) )
+				.MapDefaultTypeNames( t => t.Add( typeof(TUser), entityName ) );
 			return new ElasticClient( settings );
 		}
 
