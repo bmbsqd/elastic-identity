@@ -37,6 +37,7 @@ using Nest;
 namespace Bmbsqd.ElasticIdentity
 {
 	public class ElasticUserStore<TUser> :
+		ElasticUserStore,
 		IUserLoginStore<TUser>,
 		IUserClaimStore<TUser>,
 		IUserRoleStore<TUser>,
@@ -44,32 +45,14 @@ namespace Bmbsqd.ElasticIdentity
 		IUserSecurityStampStore<TUser>
 		where TUser : ElasticUser
 	{
-		private const int _defaultSizeForAll = 1000 * 1000;
-
 		private readonly IElasticClient _connection;
-		public event EventHandler<ElasticUserStoreTraceEventArgs> Trace;
-
-		private T Wrap<T>( T result, [CallerMemberName] string operation = "" ) where T : IResponse
-		{
-			var c = result.ConnectionStatus;
-			OnTrace( operation, c.RequestUrl, c.Request, c.Result );
-			return result;
-		}
-
-		protected virtual void OnTrace( string operation, string url, string request, string response )
-		{
-			var trace = Trace;
-			if( trace != null ) {
-				trace( this, new ElasticUserStoreTraceEventArgs( operation, url, request, response ) );
-			}
-		}
 
 		private static IElasticClient CreateClient( Uri connectionString, string indexName, string entityName )
 		{
 			var settings = new ConnectionSettings( connectionString )
 				.SetDefaultIndex( indexName )
-				.MapDefaultTypeIndices( t => t.Add( typeof( TUser ), indexName ) )
-				.MapDefaultTypeNames( t => t.Add( typeof( TUser ), entityName ) );
+				.MapDefaultTypeIndices( t => t.Add( typeof(TUser), indexName ) )
+				.MapDefaultTypeNames( t => t.Add( typeof(TUser), entityName ) );
 			return new ElasticClient( settings );
 		}
 
@@ -78,10 +61,10 @@ namespace Bmbsqd.ElasticIdentity
 			var settings = new IndexSettings();
 			settings.Analysis.Analyzers.Add( "lowercaseKeyword", new CustomAnalyzer {
 				Tokenizer = "keyword",
-				Filter = new[] { "standard", "lowercase" }
+				Filter = new[] {"standard", "lowercase"}
 			} );
-			var keywordString = new StringMapping { Analyzer = "lowercaseKeyword", IncludeInAll = false };
-			var simpleString = new StringMapping { Index = FieldIndexOption.not_analyzed, IncludeInAll = false };
+			var keywordString = new StringMapping {Analyzer = "lowercaseKeyword", IncludeInAll = false};
+			var simpleString = new StringMapping {Index = FieldIndexOption.not_analyzed, IncludeInAll = false};
 
 			settings.Mappings.Add( new RootObjectMapping {
 				Name = entityName,
@@ -165,7 +148,7 @@ namespace Bmbsqd.ElasticIdentity
 		public async Task DeleteAsync( TUser user )
 		{
 			if( user == null ) throw new ArgumentNullException( "user" );
-			Wrap( await _connection.DeleteByIdAsync<TUser>( user.Id, new DeleteParameters { Refresh = true } ) );
+			Wrap( await _connection.DeleteByIdAsync<TUser>( user.Id, new DeleteParameters {Refresh = true} ) );
 		}
 
 		public Task<TUser> FindByIdAsync( string userId )
@@ -184,7 +167,7 @@ namespace Bmbsqd.ElasticIdentity
 			if( user == null ) throw new ArgumentNullException( "user" );
 			if( login == null ) throw new ArgumentNullException( "login" );
 			user.Logins.Add( login );
-			return Task.FromResult( true );
+			return DoneTask;
 		}
 
 		public Task RemoveLoginAsync( TUser user, UserLoginInfo login )
@@ -192,7 +175,7 @@ namespace Bmbsqd.ElasticIdentity
 			if( user == null ) throw new ArgumentNullException( "user" );
 			if( login == null ) throw new ArgumentNullException( "login" );
 			user.Logins.RemoveAll( x => x.LoginProvider == login.LoginProvider && x.ProviderKey == login.ProviderKey );
-			return Task.FromResult( true );
+			return DoneTask;
 		}
 
 		public Task<IList<UserLoginInfo>> GetLoginsAsync( TUser user )
@@ -226,7 +209,7 @@ namespace Bmbsqd.ElasticIdentity
 			if( user == null ) throw new ArgumentNullException( "user" );
 			if( claim == null ) throw new ArgumentNullException( "claim" );
 			user.Claims.Add( claim );
-			return Task.FromResult( true );
+			return DoneTask;
 		}
 
 		public Task RemoveClaimAsync( TUser user, Claim claim )
@@ -234,7 +217,7 @@ namespace Bmbsqd.ElasticIdentity
 			if( user == null ) throw new ArgumentNullException( "user" );
 			if( claim == null ) throw new ArgumentNullException( "claim" );
 			user.Claims.Remove( claim );
-			return Task.FromResult( true );
+			return DoneTask;
 		}
 
 		public Task AddToRoleAsync( TUser user, string role )
@@ -242,7 +225,7 @@ namespace Bmbsqd.ElasticIdentity
 			if( user == null ) throw new ArgumentNullException( "user" );
 			if( role == null ) throw new ArgumentNullException( "role" );
 			user.Roles.Add( role );
-			return Task.FromResult( true );
+			return DoneTask;
 		}
 
 		public Task RemoveFromRoleAsync( TUser user, string role )
@@ -250,7 +233,7 @@ namespace Bmbsqd.ElasticIdentity
 			if( user == null ) throw new ArgumentNullException( "user" );
 			if( role == null ) throw new ArgumentNullException( "role" );
 			user.Roles.Remove( role );
-			return Task.FromResult( true );
+			return DoneTask;
 		}
 
 		public Task<IList<string>> GetRolesAsync( TUser user )
@@ -271,7 +254,7 @@ namespace Bmbsqd.ElasticIdentity
 		{
 			if( user == null ) throw new ArgumentNullException( "user" );
 			user.PasswordHash = passwordHash;
-			return Task.FromResult( true );
+			return DoneTask;
 		}
 
 		public Task<string> GetPasswordHashAsync( TUser user )
@@ -290,7 +273,7 @@ namespace Bmbsqd.ElasticIdentity
 		{
 			if( user == null ) throw new ArgumentNullException( "user" );
 			user.SecurityStamp = stamp;
-			return Task.FromResult( true );
+			return DoneTask;
 		}
 
 		public Task<string> GetSecurityStampAsync( TUser user )
@@ -301,8 +284,30 @@ namespace Bmbsqd.ElasticIdentity
 
 		public async Task<IEnumerable<TUser>> GetAllAsync()
 		{
-			var result = Wrap( await _connection.SearchAsync<TUser>( search => search.MatchAll().Size( _defaultSizeForAll ) ) );
+			var result = Wrap( await _connection.SearchAsync<TUser>( search => search.MatchAll().Size( DefaultSizeForAll ) ) );
 			return result.Documents;
+		}
+	}
+
+	public class ElasticUserStore
+	{
+		protected static readonly Task DoneTask = Task.FromResult( true );
+		protected const int DefaultSizeForAll = 1000*1000;
+		public event EventHandler<ElasticUserStoreTraceEventArgs> Trace;
+
+		protected virtual void OnTrace( string operation, string url, string request, string response )
+		{
+			var trace = Trace;
+			if( trace != null ) {
+				trace( this, new ElasticUserStoreTraceEventArgs( operation, url, request, response ) );
+			}
+		}
+
+		protected T Wrap<T>( T result, [CallerMemberName] string operation = "" ) where T : IResponse
+		{
+			var c = result.ConnectionStatus;
+			OnTrace( operation, c.RequestUrl, c.Request, c.Result );
+			return result;
 		}
 	}
 }

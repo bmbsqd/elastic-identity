@@ -24,12 +24,17 @@ namespace Bmbsqd.ElasticIdentity
 		}
 
 		[JsonIgnore]
-		public string Id { get { return UserName; } }
+		public string Id
+		{
+			get { return UserName; }
+		}
+
 		public string UserName
 		{
 			get { return _userName; }
 			set { _userName = UserNameUtils.FormatUserName( value ); }
 		}
+
 		public string PasswordHash { get; set; }
 		public string SecurityStamp { get; set; }
 
@@ -40,7 +45,7 @@ namespace Bmbsqd.ElasticIdentity
 
 		public ISet<ElasticClaim> Claims
 		{
-			get {return _claims;}
+			get { return _claims; }
 		}
 
 		public ISet<string> Roles

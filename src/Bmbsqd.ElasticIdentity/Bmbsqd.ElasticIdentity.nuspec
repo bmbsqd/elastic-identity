@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
-<package >
+
+<package>
 	<metadata>
 		<id>Bmbsqd.ElasticIdentity</id>
 		<version>0.3.0.0</version>
