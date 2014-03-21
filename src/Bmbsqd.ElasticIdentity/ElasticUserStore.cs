@@ -1,4 +1,5 @@
 ﻿#region MIT License
+
 /*
 	The MIT License (MIT)
 
@@ -21,6 +22,7 @@
 	IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 	CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
+
 #endregion
 
 using System;
@@ -35,14 +37,14 @@ using Nest;
 namespace Bmbsqd.ElasticIdentity
 {
 	public class ElasticUserStore<TUser> :
-			IUserLoginStore<TUser>,
-			IUserClaimStore<TUser>,
-			IUserRoleStore<TUser>,
-			IUserPasswordStore<TUser>,
-			IUserSecurityStampStore<TUser>
-			where TUser : ElasticUser
+		IUserLoginStore<TUser>,
+		IUserClaimStore<TUser>,
+		IUserRoleStore<TUser>,
+		IUserPasswordStore<TUser>,
+		IUserSecurityStampStore<TUser>
+		where TUser : ElasticUser
 	{
-		private const int _defaultSizeForAll = 1000*1000;
+		private const int _defaultSizeForAll = 1000 * 1000;
 
 		private readonly IElasticClient _connection;
 		public event EventHandler<ElasticUserStoreTraceEventArgs> Trace;
@@ -66,8 +68,8 @@ namespace Bmbsqd.ElasticIdentity
 		{
 			var settings = new ConnectionSettings( connectionString )
 				.SetDefaultIndex( indexName )
-				.MapDefaultTypeIndices( t => t.Add( typeof(TUser), indexName ) )
-				.MapDefaultTypeNames( t => t.Add( typeof(TUser), entityName ) );
+				.MapDefaultTypeIndices( t => t.Add( typeof( TUser ), indexName ) )
+				.MapDefaultTypeNames( t => t.Add( typeof( TUser ), entityName ) );
 			return new ElasticClient( settings );
 		}
 
@@ -78,9 +80,9 @@ namespace Bmbsqd.ElasticIdentity
 				Tokenizer = "keyword",
 				Filter = new[] { "standard", "lowercase" }
 			} );
-			var keywordString = new StringMapping {Analyzer = "lowercaseKeyword", IncludeInAll = false};
-			var simpleString = new StringMapping {Index = FieldIndexOption.not_analyzed, IncludeInAll = false};
-			
+			var keywordString = new StringMapping { Analyzer = "lowercaseKeyword", IncludeInAll = false };
+			var simpleString = new StringMapping { Index = FieldIndexOption.not_analyzed, IncludeInAll = false };
+
 			settings.Mappings.Add( new RootObjectMapping {
 				Name = entityName,
 				TypeNameMarker = entityName,
@@ -90,8 +92,8 @@ namespace Bmbsqd.ElasticIdentity
 					{"userName", keywordString},
 					{"passwordHash", simpleString},
 					{"securityStamp", simpleString},
-					{"roles", simpleString},
-					{"claims", new ObjectMapping {
+					{"roles", simpleString}, {
+						"claims", new ObjectMapping {
 							Name = "claim",
 							IncludeInAll = false,
 							Properties = new Dictionary<string, IElasticType> {
@@ -99,8 +101,8 @@ namespace Bmbsqd.ElasticIdentity
 								{"value", simpleString}
 							}
 						}
-					}, 
-					{"logins", new ObjectMapping {
+					}, {
+						"logins", new ObjectMapping {
 							Name = "login",
 							IncludeInAll = false,
 							Properties = new Dictionary<string, IElasticType> {
@@ -129,7 +131,6 @@ namespace Bmbsqd.ElasticIdentity
 
 		public ElasticUserStore( Uri connectionString, string indexName = "users", string entityName = "user", bool forceRecreate = false, Action<ElasticUserStore<TUser>> seed = null )
 		{
-			
 			if( connectionString == null ) throw new ArgumentNullException( "connectionString" );
 			if( indexName == null ) throw new ArgumentNullException( "indexName" );
 			if( entityName == null ) throw new ArgumentNullException( "entityName" );
@@ -164,7 +165,7 @@ namespace Bmbsqd.ElasticIdentity
 		public async Task DeleteAsync( TUser user )
 		{
 			if( user == null ) throw new ArgumentNullException( "user" );
-			Wrap( await _connection.DeleteByIdAsync<TUser>( user.Id, new DeleteParameters {Refresh = true} ) );
+			Wrap( await _connection.DeleteByIdAsync<TUser>( user.Id, new DeleteParameters { Refresh = true } ) );
 		}
 
 		public Task<TUser> FindByIdAsync( string userId )
@@ -204,9 +205,9 @@ namespace Bmbsqd.ElasticIdentity
 		{
 			if( login == null ) throw new ArgumentNullException( "login" );
 			var result = Wrap( await _connection.SearchAsync<TUser>( search => search.
-				Filter( filter => 
-					filter.Term( user => user.Logins[0].ProviderKey, login.ProviderKey ) 
-					&& filter.Term( user => user.Logins[0].LoginProvider, login.LoginProvider ) ) ) );
+				Filter( x =>
+					x.Term( user => user.Logins[0].ProviderKey, login.ProviderKey ) &&
+					x.Term( user => user.Logins[0].LoginProvider, login.LoginProvider ) ) ) );
 			return result.Documents.FirstOrDefault();
 		}
 
