@@ -3,7 +3,7 @@
 <package>
 	<metadata>
 		<id>Bmbsqd.ElasticIdentity</id>
-		<version>0.3.0.0</version>
+		<version>0.4.0.0-beta1</version>
 		<title>Identity Provider for Elasticsearch</title>
 		<authors>BMBSQD</authors>
 		<owners>BMBSQD</owners>
@@ -12,7 +12,7 @@
 		<projectUrl>https://github.com/bmbsqd/elastic-identity</projectUrl>
 		<iconUrl>http://www.gravatar.com/avatar/778137d42770f739df317b3cde5454ed.png?s=128</iconUrl>
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
-		<releaseNotes>Update for AspNet Identity 2.0</releaseNotes>
+		<releaseNotes>Update for AspNet Identity 2.x, Nest 1.x</releaseNotes>
 		<copyright>© Bombsquad Inc 2014</copyright>
 		<tags>identity elasticsearch elastic search</tags>
 		<!--<references></references>-->
@@ -20,7 +20,7 @@
 			<group>
 				<dependency id="Microsoft.AspNet.Identity.Core" version="2.0" />
 				<dependency id="Newtonsoft.Json" version="6.0" />
-				<dependency id="NEST" version="0.12.0.0" />
+				<dependency id="NEST" version="1.0" />
 			</group>
 		</dependencies>
 	</metadata>

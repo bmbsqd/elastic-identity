@@ -24,10 +24,12 @@
 #endregion
 using System.Collections.Generic;
 using Microsoft.AspNet.Identity;
+using Nest;
 using Newtonsoft.Json;
 
 namespace Bmbsqd.ElasticIdentity
 {
+	[ElasticType( Name = "user", IdProperty = "userName" )]
 	public class ElasticUser : IUser
 	{
 		private readonly List<UserLoginInfo> _logins;
@@ -42,24 +44,30 @@ namespace Bmbsqd.ElasticIdentity
 			_roles = new HashSet<string>();
 		}
 
-		public ElasticUser( string userName ) : this()
+		public ElasticUser( string userName )
+			: this()
 		{
 			UserName = userName;
 		}
 
 		[JsonIgnore]
+		[ElasticProperty( OptOut = true )]
 		public string Id
 		{
 			get { return UserName; }
 		}
 
+		[ElasticProperty( Analyzer = "lowercaseKeyword", IncludeInAll = false )]
 		public string UserName
 		{
 			get { return _userName; }
 			set { _userName = UserNameUtils.FormatUserName( value ); }
 		}
 
+		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.not_analyzed )]
 		public string PasswordHash { get; set; }
+
+		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.not_analyzed )]
 		public string SecurityStamp { get; set; }
 
 		public List<UserLoginInfo> Logins

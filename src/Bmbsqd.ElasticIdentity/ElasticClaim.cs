@@ -24,12 +24,16 @@
 #endregion
 using System;
 using System.Security.Claims;
+using Nest;
 
 namespace Bmbsqd.ElasticIdentity
 {
 	public class ElasticClaim : IEquatable<ElasticClaim>
 	{
+		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.not_analyzed )]
 		public string Type { get; set; }
+
+		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.not_analyzed )]
 		public string Value { get; set; }
 
 		public ElasticClaim()

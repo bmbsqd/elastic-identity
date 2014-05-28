@@ -28,12 +28,24 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Security.Claims;
+using System.Text;
 using System.Threading.Tasks;
+using Elasticsearch.Net;
 using Microsoft.AspNet.Identity;
 using Nest;
+using Newtonsoft.Json.Converters;
 
 namespace Bmbsqd.ElasticIdentity
 {
+	public class ElasticEnumConverter : StringEnumConverter
+	{
+		public ElasticEnumConverter()
+		{
+			AllowIntegerValues = true;
+			CamelCaseText = true;
+		}
+	}
+
 	public class ElasticUserStore<TUser> :
 		ElasticUserStore,
 		IUserLoginStore<TUser>,
@@ -49,62 +61,35 @@ namespace Bmbsqd.ElasticIdentity
 		{
 			var settings = new ConnectionSettings( connectionString )
 				.SetDefaultIndex( indexName )
-				.MapDefaultTypeIndices( t => t.Add( typeof(TUser), indexName ) )
-				.MapDefaultTypeNames( t => t.Add( typeof(TUser), entityName ) );
+				.MapDefaultTypeIndices( x => x.Add( typeof( TUser ), indexName ) )
+				.MapDefaultTypeNames( x => x.Add( typeof( TUser ), entityName ) )
+				.DisablePing()
+				.SetJsonSerializerSettingsModifier( s => s.Converters.Add( new ElasticEnumConverter() ) );
 			return new ElasticClient( settings );
-		}
-
-		private static IndexSettings CreateIndexSettings( string entityName )
-		{
-			var settings = new IndexSettings();
-			settings.Analysis.Analyzers.Add( "lowercaseKeyword", new CustomAnalyzer {
-				Tokenizer = "keyword",
-				Filter = new[] {"standard", "lowercase"}
-			} );
-			var keywordString = new StringMapping {Analyzer = "lowercaseKeyword", IncludeInAll = false};
-			var simpleString = new StringMapping {Index = FieldIndexOption.not_analyzed, IncludeInAll = false};
-
-			settings.Mappings.Add( new RootObjectMapping {
-				Name = entityName,
-				TypeNameMarker = entityName,
-				IdFieldMapping = new IdFieldMapping().SetPath( "userName" ),
-				IncludeInAll = false,
-				Properties = new Dictionary<string, IElasticType> {
-					{"userName", keywordString},
-					{"passwordHash", simpleString},
-					{"securityStamp", simpleString},
-					{"roles", simpleString}, {
-						"claims", new ObjectMapping {
-							Name = "claim",
-							IncludeInAll = false,
-							Properties = new Dictionary<string, IElasticType> {
-								{"type", simpleString},
-								{"value", simpleString}
-							}
-						}
-					}, {
-						"logins", new ObjectMapping {
-							Name = "login",
-							IncludeInAll = false,
-							Properties = new Dictionary<string, IElasticType> {
-								{"loginProvider", simpleString},
-								{"providerKey", simpleString}
-							}
-						}
-					},
-				}
-			} );
-			return settings;
 		}
 
 		private void SetupIndex( string indexName, string entityName, bool forceRecreate, Action<ElasticUserStore<TUser>> seed )
 		{
 			if( forceRecreate ) {
-				Wrap( _connection.DeleteIndex( indexName ) );
+				Wrap( _connection.DeleteIndex( x => x.Index( indexName ) ) );
 			}
 
-			if( !Wrap( _connection.IndexExists( indexName ) ).Exists ) {
-				Wrap( _connection.CreateIndex( indexName, CreateIndexSettings( entityName ) ) );
+			if( !Wrap( _connection.IndexExists( x => x.Index( indexName ) ) ).Exists ) {
+				Wrap( _connection.CreateIndex( indexName,
+					createIndexDescriptor => createIndexDescriptor
+						.Analysis( a => a
+							.Analyzers( x => x.Add( "lowercaseKeyword", new CustomAnalyzer {
+								Tokenizer = "keyword",
+								Filter = new[] {"standard", "lowercase"}
+							} ) )
+						)
+						.AddMapping<TUser>( m => m
+							.MapFromAttributes()
+							.IncludeInAll( false )
+							.Type( entityName )
+						)
+					) );
+
 				if( seed != null )
 					seed( this );
 			}
@@ -127,10 +112,7 @@ namespace Bmbsqd.ElasticIdentity
 		private async Task CreateOrUpdateAsync( TUser user, bool create )
 		{
 			if( user == null ) throw new ArgumentNullException( "user" );
-			Wrap( await _connection.IndexAsync( user, new IndexParameters {
-				Refresh = true,
-				OpType = create ? OpType.Create : OpType.None
-			} ) );
+			Wrap( await _connection.IndexAsync( user, x => x.Refresh().OpType( create ? OpTypeOptions.Create : OpTypeOptions.Index ) ) );
 		}
 
 		public Task CreateAsync( TUser user )
@@ -146,7 +128,9 @@ namespace Bmbsqd.ElasticIdentity
 		public async Task DeleteAsync( TUser user )
 		{
 			if( user == null ) throw new ArgumentNullException( "user" );
-			Wrap( await _connection.DeleteByIdAsync<TUser>( user.Id, new DeleteParameters {Refresh = true} ) );
+			Wrap( await _connection.DeleteAsync<TUser>( d => d
+				.Id( user.Id )
+				.Refresh() ) );
 		}
 
 		public Task<TUser> FindByIdAsync( string userId )
@@ -185,10 +169,16 @@ namespace Bmbsqd.ElasticIdentity
 		public async Task<TUser> FindAsync( UserLoginInfo login )
 		{
 			if( login == null ) throw new ArgumentNullException( "login" );
-			var result = Wrap( await _connection.SearchAsync<TUser>( search => search.
-				Filter( x =>
-					x.Term( user => user.Logins[0].ProviderKey, login.ProviderKey ) &&
-					x.Term( user => user.Logins[0].LoginProvider, login.LoginProvider ) ) ) );
+			var result = Wrap( await _connection.SearchAsync<TUser>(
+				search => search
+					.Filter( filter => filter
+						.Bool( b => b
+							.Must(
+								m => m.Term( user => user.Logins[0].ProviderKey, login.ProviderKey ),
+								m => m.Term( user => user.Logins[0].LoginProvider, login.LoginProvider )
+							) )
+					) )
+				);
 			return result.Documents.FirstOrDefault();
 		}
 
@@ -290,21 +280,24 @@ namespace Bmbsqd.ElasticIdentity
 	public class ElasticUserStore
 	{
 		protected static readonly Task DoneTask = Task.FromResult( true );
-		protected const int DefaultSizeForAll = 1000*1000;
+		protected const int DefaultSizeForAll = 1000 * 1000;
 		public event EventHandler<ElasticUserStoreTraceEventArgs> Trace;
 
-		protected virtual void OnTrace( string operation, string url, string request, string response )
+		protected virtual void OnTrace( string operation, IElasticsearchResponse response )
 		{
 			var trace = Trace;
 			if( trace != null ) {
-				trace( this, new ElasticUserStoreTraceEventArgs( operation, url, request, response ) );
+				trace( this, new ElasticUserStoreTraceEventArgs( operation,
+					response.RequestUrl,
+					Encoding.UTF8.GetString( response.Request ),
+					Encoding.UTF8.GetString( response.ResponseRaw ) ) );
 			}
 		}
 
 		protected T Wrap<T>( T result, [CallerMemberName] string operation = "" ) where T : IResponse
 		{
 			var c = result.ConnectionStatus;
-			OnTrace( operation, c.RequestUrl, c.Request, c.Result );
+			OnTrace( operation, c );
 			return result;
 		}
 	}

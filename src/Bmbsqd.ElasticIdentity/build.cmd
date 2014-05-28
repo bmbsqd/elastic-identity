@@ -21,4 +21,7 @@ REM		COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHET
 REM		IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 REM		CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-nuget pack -Verbosity detailed -Symbols -Build -OutputDirectory c:\temp 
+set outputPath=..\..\packages\elastic-identity
+
+mkdir %outputPath%
+nuget pack -Verbosity detailed -Symbols -Build -OutputDirectory %outputPath%
