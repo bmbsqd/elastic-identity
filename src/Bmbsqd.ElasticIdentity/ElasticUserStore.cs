@@ -33,26 +33,21 @@ using System.Threading.Tasks;
 using Elasticsearch.Net;
 using Microsoft.AspNet.Identity;
 using Nest;
-using Newtonsoft.Json.Converters;
 
 namespace Bmbsqd.ElasticIdentity
 {
-	public class ElasticEnumConverter : StringEnumConverter
-	{
-		public ElasticEnumConverter()
-		{
-			AllowIntegerValues = true;
-			CamelCaseText = true;
-		}
-	}
-
 	public class ElasticUserStore<TUser> :
 		ElasticUserStore,
+		IUserStore<TUser>,
 		IUserLoginStore<TUser>,
 		IUserClaimStore<TUser>,
 		IUserRoleStore<TUser>,
 		IUserPasswordStore<TUser>,
-		IUserSecurityStampStore<TUser>
+		IUserSecurityStampStore<TUser>,
+		IUserTwoFactorStore<TUser, string>,
+		IUserEmailStore<TUser, string>,
+		IUserPhoneNumberStore<TUser, string>
+		//IUserLockoutStore<TUser,string>
 		where TUser : ElasticUser
 	{
 		private readonly IElasticClient _connection;
@@ -68,7 +63,7 @@ namespace Bmbsqd.ElasticIdentity
 			return new ElasticClient( settings );
 		}
 
-		private void SetupIndex( string indexName, string entityName, bool forceRecreate, Action<ElasticUserStore<TUser>> seed )
+		private void SetupIndex( string indexName, string entityName, bool forceRecreate )
 		{
 			if( forceRecreate ) {
 				Wrap( _connection.DeleteIndex( x => x.Index( indexName ) ) );
@@ -80,7 +75,7 @@ namespace Bmbsqd.ElasticIdentity
 						.Analysis( a => a
 							.Analyzers( x => x.Add( "lowercaseKeyword", new CustomAnalyzer {
 								Tokenizer = "keyword",
-								Filter = new[] {"standard", "lowercase"}
+								Filter = new[] { "standard", "lowercase" }
 							} ) )
 						)
 						.AddMapping<TUser>( m => m
@@ -90,23 +85,27 @@ namespace Bmbsqd.ElasticIdentity
 						)
 					) );
 
-				if( seed != null )
-					seed( this );
+				Task.Run( () => SeedAsync() ).Wait(); // ASP.NET Global.asax doesn't like async operations if not wrapped in Task.Run()
 			}
 		}
 
-		public ElasticUserStore( Uri connectionString, string indexName = "users", string entityName = "user", bool forceRecreate = false, Action<ElasticUserStore<TUser>> seed = null )
+		public ElasticUserStore( Uri connectionString, string indexName = "users", string entityName = "user", bool forceRecreate = false )
 		{
 			if( connectionString == null ) throw new ArgumentNullException( "connectionString" );
 			if( indexName == null ) throw new ArgumentNullException( "indexName" );
 			if( entityName == null ) throw new ArgumentNullException( "entityName" );
 
 			_connection = CreateClient( connectionString, indexName, entityName );
-			SetupIndex( indexName, entityName, forceRecreate, seed );
+			SetupIndex( indexName, entityName, forceRecreate );
 		}
 
 		void IDisposable.Dispose()
 		{
+		}
+
+		protected virtual Task SeedAsync()
+		{
+			return Task.FromResult( true );
 		}
 
 		private async Task CreateOrUpdateAsync( TUser user, bool create )
@@ -135,12 +134,30 @@ namespace Bmbsqd.ElasticIdentity
 
 		public Task<TUser> FindByIdAsync( string userId )
 		{
+			if( userId == null ) throw new ArgumentNullException( "userId" );
 			return FindByNameAsync( userId );
 		}
 
 		public async Task<TUser> FindByNameAsync( string userName )
 		{
+			if( userName == null ) throw new ArgumentNullException( "userName" );
 			var result = Wrap( await _connection.SearchAsync<TUser>( search => search.Filter( filter => filter.Term( user => user.UserName, UserNameUtils.FormatUserName( userName ) ) ) ) );
+			return result.Documents.FirstOrDefault();
+
+			// ShouldBe: but Nest throws on 404
+			//var result = Wrap( await _connection.GetAsync<TUser>( x => x.Id( UserNameUtils.FormatUserName( userName ) ) ) );
+			//return result.Source;
+
+		}
+
+		public async Task<TUser> FindByEmailAsync( string email )
+		{
+			if( email == null ) throw new ArgumentNullException( "email" );
+			var result = Wrap( await _connection.SearchAsync<TUser>(
+				search => search
+					.Filter( filter => filter
+						.Term( user => user.Email.Address, email ) )
+				) );
 			return result.Documents.FirstOrDefault();
 		}
 
@@ -275,9 +292,100 @@ namespace Bmbsqd.ElasticIdentity
 			var result = Wrap( await _connection.SearchAsync<TUser>( search => search.MatchAll().Size( DefaultSizeForAll ) ) );
 			return result.Documents;
 		}
+
+		public Task SetTwoFactorEnabledAsync( TUser user, bool enabled )
+		{
+			if( user == null ) throw new ArgumentNullException( "user" );
+			user.TwoFactorAuthenticationEnabled = enabled;
+			return DoneTask;
+		}
+
+		public Task<bool> GetTwoFactorEnabledAsync( TUser user )
+		{
+			if( user == null ) throw new ArgumentNullException( "user" );
+			return Task.FromResult( user.TwoFactorAuthenticationEnabled );
+		}
+
+		public Task SetEmailAsync( TUser user, string email )
+		{
+			if( user == null ) throw new ArgumentNullException( "user" );
+			user.Email = email == null
+				? null
+				: new ElasticUserEmail { Address = email };
+			return DoneTask;
+		}
+
+		public Task<string> GetEmailAsync( TUser user )
+		{
+			if( user == null ) throw new ArgumentNullException( "user" );
+			var elasticUserEmail = user.Email;
+
+			return elasticUserEmail != null
+				? Task.FromResult( elasticUserEmail.Address )
+				: Task.FromResult<string>( null );
+		}
+
+		public Task<bool> GetEmailConfirmedAsync( TUser user )
+		{
+			if( user == null ) throw new ArgumentNullException( "user" );
+			var elasticUserEmail = user.Email;
+
+			return elasticUserEmail != null
+				? Task.FromResult( elasticUserEmail.IsConfirmed )
+				: Task.FromResult( false );
+		}
+
+		public Task SetEmailConfirmedAsync( TUser user, bool confirmed )
+		{
+			if( user == null ) throw new ArgumentNullException( "user" );
+			var elasticUserEmail = user.Email;
+			if( elasticUserEmail != null )
+				elasticUserEmail.IsConfirmed = true;
+			else throw new InvalidOperationException( "User have no configured email address" );
+			return DoneTask;
+		}
+
+		public Task SetPhoneNumberAsync( TUser user, string phoneNumber )
+		{
+			if( user == null ) throw new ArgumentNullException( "user" );
+			user.Phone = phoneNumber == null
+				? null
+				: new ElasticUserPhone { Number = phoneNumber };
+			return DoneTask;
+		}
+
+		public Task<string> GetPhoneNumberAsync( TUser user )
+		{
+			if( user == null ) throw new ArgumentNullException( "user" );
+			var elasticUserPhone = user.Phone;
+
+			return elasticUserPhone != null
+				? Task.FromResult( elasticUserPhone.Number )
+				: Task.FromResult<string>( null );
+		}
+
+		public Task<bool> GetPhoneNumberConfirmedAsync( TUser user )
+		{
+			if( user == null ) throw new ArgumentNullException( "user" );
+			var elasticUserPhone = user.Phone;
+
+			return elasticUserPhone != null
+				? Task.FromResult( elasticUserPhone.IsConfirmed )
+				: Task.FromResult( false );
+		}
+
+		public Task SetPhoneNumberConfirmedAsync( TUser user, bool confirmed )
+		{
+			if( user == null ) throw new ArgumentNullException( "user" );
+			var elasticUserPhone = user.Phone;
+			if( elasticUserPhone != null )
+				elasticUserPhone.IsConfirmed = true;
+			else throw new InvalidOperationException( "User have no configured phone number" );
+			return DoneTask;
+		}
 	}
 
-	public class ElasticUserStore
+	public abstract class ElasticUserStore
 	{
 		protected static readonly Task DoneTask = Task.FromResult( true );
 		protected const int DefaultSizeForAll = 1000 * 1000;

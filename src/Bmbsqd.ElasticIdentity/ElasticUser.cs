@@ -23,13 +23,14 @@
 */
 #endregion
 using System.Collections.Generic;
+using System.ComponentModel;
 using Microsoft.AspNet.Identity;
 using Nest;
 using Newtonsoft.Json;
 
 namespace Bmbsqd.ElasticIdentity
 {
-	[ElasticType( Name = "user", IdProperty = "userName" )]
+	[ElasticType( IdProperty = "userName" )]
 	public class ElasticUser : IUser
 	{
 		private readonly List<UserLoginInfo> _logins;
@@ -84,6 +85,30 @@ namespace Bmbsqd.ElasticIdentity
 		{
 			get { return _roles; }
 		}
+
+		public ElasticUserEmail Email { get; set; }
+
+		public ElasticUserPhone Phone { get; set; }
+
+
+		/// <summary>
+		/// Convenience property
+		/// </summary>
+		[ElasticProperty( OptOut = true )]
+		[JsonIgnore]
+		public string EmailAddress
+		{
+			get { return Email != null ? Email.Address : null; }
+		}
+
+
+
+		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.not_analyzed )]
+		[JsonProperty( DefaultValueHandling = DefaultValueHandling.Ignore )]
+		[DefaultValue( false )]
+		public bool TwoFactorAuthenticationEnabled { get; set; }
+
+		
 
 		public override string ToString()
 		{

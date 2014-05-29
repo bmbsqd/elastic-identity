@@ -8,10 +8,20 @@ Why use elastic-identity
 
 Elastic-Identity wires up the storage and repository of ElasticSearch with ASP.NET Identity
 
-How to use
+
+Reversion History
 ==========
 
+- 1.0.0-beta
+  - Added support for additional services: 
+     - IUserTwoFactorStore
+     - IUserEmailStore
+     - IUserPhoneNumberStore
+  - Upgrade to ASP.NET Identity 2.x
+  - Upgrade to support Nest 1.x
 
+How to use
+==========
 
 Simple
 ------
@@ -37,29 +47,37 @@ Let's seed the user store if the index is created
 -------------------------------------------------
 
 ```csharp
-static readonly string[] _roles =
+
+public class MyElasticUserStore<TUser> : ElasticUserStore<TUser>
 {
-	"Admin", 
-	"User", 
-	...
-};
+  public MyElasticUserStore( Uri connectionString ) : base( connectionString )
+  {
+  }
+  
+  static readonly string[] _roles =
+  {
+    "Admin", 
+    "User", 
+    ...
+  };
 
-const string _seedUser = "elon-musk";
-const string _seedPassword = "tesla";
+  const string _seedUser = "elonmusk";
+  const string _seedPassword = "tesla";
 
-static void SeedUserStore( ElasticUserStore<ElasticUser> store )
-{
-	var user = new ElasticUser {
-		UserName = _seedUser
-	};
+  protected override async Task SeedAsync()
+  {
+    var user = new ElasticUser {
+      UserName = _seedUser
+    };
+    user.Roles.UnionWith( _roles );
 
-	user.Roles.UnionWith( _roles );
-
-	var userManager = new UserManager<ElasticUser>( store );
-	userManager.Create( user, _seedPassword );
+    var userManager = new UserManager<ElasticUser>( this );
+    await userManager.CreateAsync( user, _seedPassword );
+  }
 }
 
-builder.Register( c => new ElasticUserStore<ElasticUser>( Settings.Default.UserServer, seed: SeedUserStore ) )
+
+builder.Register( c => new MyElasticUserStore<ElasticUser>( Settings.Default.UserServer ) )
 	.AsSelf()
 	.AsImplementedInterfaces()
 	.SingleInstance();

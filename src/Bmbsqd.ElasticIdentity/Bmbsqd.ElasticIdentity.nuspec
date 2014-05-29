@@ -3,7 +3,7 @@
 <package>
 	<metadata>
 		<id>Bmbsqd.ElasticIdentity</id>
-		<version>0.4.0.0-beta1</version>
+		<version>1.0.0-beta1</version>
 		<title>Identity Provider for Elasticsearch</title>
 		<authors>BMBSQD</authors>
 		<owners>BMBSQD</owners>
