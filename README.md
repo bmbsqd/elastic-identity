@@ -1,7 +1,6 @@
 Elastic Identity - The ASP.NET Identity Provider for ElasticSearch
 ==================================================================
 
-Piglet is a library for lexing and parsing text, in the spirit of those big parser and lexer genererators such as bison, antlr and flex. While not as feature packed as those, it is also a whole lot leaner and much easier to understand.
 
 Why use elastic-identity
 ========================
