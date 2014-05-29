@@ -7,7 +7,7 @@ namespace Bmbsqd.ElasticIdentity.Tests
 {
 	public abstract class TestBase
 	{
-		protected readonly Uri _connectionString = new Uri( "http://localhost:9200/" );
+		protected readonly Uri _connectionString = new Uri( "http://hello.world:9200/" );
 
 		private IElasticClient _client;
 		protected IElasticClient Client

@@ -51,27 +51,32 @@ namespace Bmbsqd.ElasticIdentity
 		//IUserLockoutStore<TUser,string>
 		where TUser : ElasticUser
 	{
-		private readonly IElasticClient _connection;
+		private readonly Lazy<Task<IElasticClient>> _connection;
 
 		private static IElasticClient CreateClient( Uri connectionString, string indexName, string entityName )
 		{
 			var settings = new ConnectionSettings( connectionString )
 				.SetDefaultIndex( indexName )
-				.MapDefaultTypeIndices( x => x.Add( typeof(TUser), indexName ) )
-				.MapDefaultTypeNames( x => x.Add( typeof(TUser), entityName ) )
+				.MapDefaultTypeIndices( x => x.Add( typeof( TUser ), indexName ) )
+				.MapDefaultTypeNames( x => x.Add( typeof( TUser ), entityName ) )
 				.DisablePing()
 				.SetJsonSerializerSettingsModifier( s => s.Converters.Add( new ElasticEnumConverter() ) );
 			return new ElasticClient( settings );
 		}
 
-		private void SetupIndex( string indexName, string entityName, bool forceRecreate )
+		private async Task SetupIndexAsync( IElasticClient connection, string indexName, string entityName, bool forceRecreate )
 		{
-			if( forceRecreate ) {
-				Wrap( _connection.DeleteIndex( x => x.Index( indexName ) ) );
+
+			//var exists = Wrap( await connection.IndexExistsAsync( x => x.Index( indexName ) ).ConfigureAwait( false ) ).Exists; // TODO: Async Version fails in NEST 1.0.0-beta1
+			var exists = Wrap( connection.IndexExists( x => x.Index( indexName ) ) ).Exists;
+
+			if( exists && forceRecreate ) {
+				Wrap( await connection.DeleteIndexAsync( x => x.Index( indexName ) ).ConfigureAwait( false ) );
+				exists = false;
 			}
 
-			if( !Wrap( _connection.IndexExists( x => x.Index( indexName ) ) ).Exists ) {
-				var createResponse = Wrap( _connection.CreateIndex( indexName,
+			if( !exists ) {
+				var createResponse = Wrap( await connection.CreateIndexAsync( indexName,
 					createIndexDescriptor => createIndexDescriptor
 						.Analysis( a => a
 							.Analyzers( x => x.Add( "lowercaseKeyword", new CustomAnalyzer {
@@ -84,10 +89,9 @@ namespace Bmbsqd.ElasticIdentity
 							.IncludeInAll( false )
 							.Type( entityName )
 						)
-					) );
+					).ConfigureAwait( false ) );
 				AssertIndexCreateSuccess( createResponse );
-
-				Task.Run( () => SeedAsync() ).Wait(); // ASP.NET Global.asax doesn't like async operations if not wrapped in Task.Run()
+				await SeedAsync().ConfigureAwait( false );
 			}
 		}
 
@@ -106,14 +110,20 @@ namespace Bmbsqd.ElasticIdentity
 		{
 			if( connectionString == null ) throw new ArgumentNullException( "connectionString" );
 			if( indexName == null ) throw new ArgumentNullException( "indexName" );
-			if( !Regex.IsMatch( indexName, "^[a-z0-9-_]+$", RegexOptions.Singleline ) ) {
+			if( entityName == null ) throw new ArgumentNullException( "entityName" );
+			if( !_nameValidationRegex.IsMatch( indexName ) ) {
 				throw new ArgumentException( "Invalid Characters in indexName, must be all lowercase", "indexName" );
 			}
-			if( entityName == null ) throw new ArgumentNullException( "entityName" );
-			
+			if( !_nameValidationRegex.IsMatch( entityName ) ) {
+				throw new ArgumentException( "Invalid Characters in entityName, must be all lowercase", "entityName" );
+			}
 
-			_connection = CreateClient( connectionString, indexName, entityName );
-			SetupIndex( indexName, entityName, forceRecreate );
+
+			_connection = new Lazy<Task<IElasticClient>>( async () => {
+				var connection = CreateClient( connectionString, indexName, entityName );
+				await SetupIndexAsync( connection, indexName, entityName, forceRecreate ).ConfigureAwait( false );
+				return connection;
+			} );
 		}
 
 		void IDisposable.Dispose()
@@ -122,13 +132,19 @@ namespace Bmbsqd.ElasticIdentity
 
 		protected virtual Task SeedAsync()
 		{
-			return Task.FromResult( true );
+			return DoneTask;
+		}
+
+		protected ConfiguredTaskAwaitable<IElasticClient> Connection
+		{
+			get { return _connection.Value.ConfigureAwait( false ); }
 		}
 
 		private async Task CreateOrUpdateAsync( TUser user, bool create )
 		{
 			if( user == null ) throw new ArgumentNullException( "user" );
-			Wrap( await _connection.IndexAsync( user, x => x.Refresh().OpType( create ? OpTypeOptions.Create : OpTypeOptions.Index ) ) );
+			var connection = await Connection;
+			Wrap( await connection.IndexAsync( user, x => x.Refresh().OpType( create ? OpTypeOptions.Create : OpTypeOptions.Index ) ) );
 		}
 
 		public Task CreateAsync( TUser user )
@@ -144,7 +160,8 @@ namespace Bmbsqd.ElasticIdentity
 		public async Task DeleteAsync( TUser user )
 		{
 			if( user == null ) throw new ArgumentNullException( "user" );
-			Wrap( await _connection.DeleteAsync<TUser>( d => d
+			var connection = await Connection;
+			Wrap( await connection.DeleteAsync<TUser>( d => d
 				.Id( user.Id )
 				.Refresh() ) );
 		}
@@ -158,7 +175,8 @@ namespace Bmbsqd.ElasticIdentity
 		public async Task<TUser> FindByNameAsync( string userName )
 		{
 			if( userName == null ) throw new ArgumentNullException( "userName" );
-			var result = Wrap( await _connection.SearchAsync<TUser>( search => search.Filter( filter => filter.Term( user => user.UserName, UserNameUtils.FormatUserName( userName ) ) ) ) );
+			var connection = await Connection;
+			var result = Wrap( await connection.SearchAsync<TUser>( search => search.Filter( filter => filter.Term( user => user.UserName, UserNameUtils.FormatUserName( userName ) ) ) ) );
 			return result.Documents.FirstOrDefault();
 
 			// ShouldBe: but Nest throws on 404
@@ -170,7 +188,8 @@ namespace Bmbsqd.ElasticIdentity
 		public async Task<TUser> FindByEmailAsync( string email )
 		{
 			if( email == null ) throw new ArgumentNullException( "email" );
-			var result = Wrap( await _connection.SearchAsync<TUser>(
+			var connection = await Connection;
+			var result = Wrap( await connection.SearchAsync<TUser>(
 				search => search
 					.Filter( filter => filter
 						.Term( user => user.Email.Address, email ) )
@@ -203,7 +222,8 @@ namespace Bmbsqd.ElasticIdentity
 		public async Task<TUser> FindAsync( UserLoginInfo login )
 		{
 			if( login == null ) throw new ArgumentNullException( "login" );
-			var result = Wrap( await _connection.SearchAsync<TUser>(
+			var connection = await Connection;
+			var result = Wrap( await connection.SearchAsync<TUser>(
 				search => search
 					.Filter( filter => filter
 						.Bool( b => b
@@ -306,7 +326,8 @@ namespace Bmbsqd.ElasticIdentity
 
 		public async Task<IEnumerable<TUser>> GetAllAsync()
 		{
-			var result = Wrap( await _connection.SearchAsync<TUser>( search => search.MatchAll().Size( DefaultSizeForAll ) ) );
+			var connection = await Connection;
+			var result = Wrap( await connection.SearchAsync<TUser>( search => search.MatchAll().Size( DefaultSizeForAll ) ) );
 			return result.Documents;
 		}
 
@@ -406,6 +427,7 @@ namespace Bmbsqd.ElasticIdentity
 	{
 		protected static readonly Task DoneTask = Task.FromResult( true );
 		protected const int DefaultSizeForAll = 1000 * 1000;
+		protected static readonly Regex _nameValidationRegex = new Regex( "^[a-z0-9-_]+$", RegexOptions.Singleline | RegexOptions.CultureInvariant );
 		public event EventHandler<ElasticUserStoreTraceEventArgs> Trace;
 
 		protected virtual void OnTrace( string operation, IElasticsearchResponse response )

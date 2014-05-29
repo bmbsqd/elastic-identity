@@ -24,6 +24,7 @@
 #endregion
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Identity;
 using NUnit.Framework;
@@ -51,6 +52,7 @@ namespace Bmbsqd.ElasticIdentity.Tests
 		public void Done()
 		{
 			Client.DeleteIndex( i => i.Index( "users" ) );
+			Thread.Sleep( 200 ); // ES seems to not like it very much when delete/create comes to close to each other.. 
 		}
 
 		[Test]
