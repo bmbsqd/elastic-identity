@@ -66,28 +66,35 @@ namespace Bmbsqd.ElasticIdentity
 		}
 
 		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.not_analyzed )]
+		[JsonProperty( DefaultValueHandling = DefaultValueHandling.Ignore )]
 		public string PasswordHash { get; set; }
 
 		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.not_analyzed )]
+		[JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
 		public string SecurityStamp { get; set; }
 
+		[JsonProperty( DefaultValueHandling = DefaultValueHandling.Ignore )]
 		public List<UserLoginInfo> Logins
 		{
 			get { return _logins; }
 		}
 
+		[JsonProperty( DefaultValueHandling = DefaultValueHandling.Ignore )]
 		public ISet<ElasticClaim> Claims
 		{
 			get { return _claims; }
 		}
 
+		[JsonProperty( DefaultValueHandling = DefaultValueHandling.Ignore )]
 		public ISet<string> Roles
 		{
 			get { return _roles; }
 		}
 
+		[JsonProperty( DefaultValueHandling = DefaultValueHandling.Ignore )]
 		public ElasticUserEmail Email { get; set; }
 
+		[JsonProperty( DefaultValueHandling = DefaultValueHandling.Ignore )]
 		public ElasticUserPhone Phone { get; set; }
 
 
@@ -101,14 +108,10 @@ namespace Bmbsqd.ElasticIdentity
 			get { return Email != null ? Email.Address : null; }
 		}
 
-
-
 		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.not_analyzed )]
 		[JsonProperty( DefaultValueHandling = DefaultValueHandling.Ignore )]
 		[DefaultValue( false )]
 		public bool TwoFactorAuthenticationEnabled { get; set; }
-
-		
 
 		public override string ToString()
 		{

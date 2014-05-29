@@ -29,6 +29,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Elasticsearch.Net;
 using Microsoft.AspNet.Identity;
@@ -56,8 +57,8 @@ namespace Bmbsqd.ElasticIdentity
 		{
 			var settings = new ConnectionSettings( connectionString )
 				.SetDefaultIndex( indexName )
-				.MapDefaultTypeIndices( x => x.Add( typeof( TUser ), indexName ) )
-				.MapDefaultTypeNames( x => x.Add( typeof( TUser ), entityName ) )
+				.MapDefaultTypeIndices( x => x.Add( typeof(TUser), indexName ) )
+				.MapDefaultTypeNames( x => x.Add( typeof(TUser), entityName ) )
 				.DisablePing()
 				.SetJsonSerializerSettingsModifier( s => s.Converters.Add( new ElasticEnumConverter() ) );
 			return new ElasticClient( settings );
@@ -70,7 +71,7 @@ namespace Bmbsqd.ElasticIdentity
 			}
 
 			if( !Wrap( _connection.IndexExists( x => x.Index( indexName ) ) ).Exists ) {
-				Wrap( _connection.CreateIndex( indexName,
+				var createResponse = Wrap( _connection.CreateIndex( indexName,
 					createIndexDescriptor => createIndexDescriptor
 						.Analysis( a => a
 							.Analyzers( x => x.Add( "lowercaseKeyword", new CustomAnalyzer {
@@ -84,8 +85,20 @@ namespace Bmbsqd.ElasticIdentity
 							.Type( entityName )
 						)
 					) );
+				AssertIndexCreateSuccess( createResponse );
 
 				Task.Run( () => SeedAsync() ).Wait(); // ASP.NET Global.asax doesn't like async operations if not wrapped in Task.Run()
+			}
+		}
+
+		private static void AssertIndexCreateSuccess( IIndicesOperationResponse createResponse )
+		{
+			var status = createResponse.ConnectionStatus;
+			if( !status.Success ) {
+				if( status.OriginalException != null ) {
+					throw status.OriginalException;
+				}
+				throw new ApplicationException( "Error while creating index, " + Encoding.UTF8.GetString( status.ResponseRaw ) );
 			}
 		}
 
@@ -93,7 +106,11 @@ namespace Bmbsqd.ElasticIdentity
 		{
 			if( connectionString == null ) throw new ArgumentNullException( "connectionString" );
 			if( indexName == null ) throw new ArgumentNullException( "indexName" );
+			if( !Regex.IsMatch( indexName, "^[a-z0-9-_]+$", RegexOptions.Singleline ) ) {
+				throw new ArgumentException( "Invalid Characters in indexName, must be all lowercase", "indexName" );
+			}
 			if( entityName == null ) throw new ArgumentNullException( "entityName" );
+			
 
 			_connection = CreateClient( connectionString, indexName, entityName );
 			SetupIndex( indexName, entityName, forceRecreate );
