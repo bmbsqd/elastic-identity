@@ -1,16 +1,26 @@
 Elastic Identity - The ASP.NET Identity Provider for ElasticSearch
 ==================================================================
 
-
 Why use elastic-identity
 ========================
 
 Elastic-Identity wires up the storage and repository of ElasticSearch with ASP.NET Identity
 
-How to use
+
+Reversion History
 ==========
 
+- 1.0.0-beta
+  - Added support for additional services: 
+     - IUserTwoFactorStore
+     - IUserEmailStore
+     - IUserPhoneNumberStore
+  - Upgrade to ASP.NET Identity 2.x
+  - Upgrade to support Nest 1.x
+  - Breaking change in constructor, no more seed parameter, users should override SeedAsync() instead
 
+How to use
+==========
 
 Simple
 ------
@@ -36,29 +46,37 @@ Let's seed the user store if the index is created
 -------------------------------------------------
 
 ```csharp
-static readonly string[] _roles =
+
+public class MyElasticUserStore<TUser> : ElasticUserStore<TUser>
 {
-	"Admin", 
-	"User", 
-	...
-};
+  public MyElasticUserStore( Uri connectionString ) : base( connectionString )
+  {
+  }
+  
+  static readonly string[] _roles =
+  {
+    "Admin", 
+    "User", 
+    ...
+  };
 
-const string _seedUser = "elon-musk";
-const string _seedPassword = "tesla";
+  const string _seedUser = "elonmusk";
+  const string _seedPassword = "tesla";
 
-static void SeedUserStore( ElasticUserStore<ElasticUser> store )
-{
-	var user = new ElasticUser {
-		UserName = _seedUser
-	};
+  protected override async Task SeedAsync()
+  {
+    var user = new ElasticUser {
+      UserName = _seedUser
+    };
+    user.Roles.UnionWith( _roles );
 
-	user.Roles.UnionWith( _roles );
-
-	var userManager = new UserManager<ElasticUser>( store );
-	userManager.Create( user, _seedPassword );
+    var userManager = new UserManager<ElasticUser>( this );
+    await userManager.CreateAsync( user, _seedPassword );
+  }
 }
 
-builder.Register( c => new ElasticUserStore<ElasticUser>( Settings.Default.UserServer, seed: SeedUserStore ) )
+
+builder.Register( c => new MyElasticUserStore<ElasticUser>( Settings.Default.UserServer ) )
 	.AsSelf()
 	.AsImplementedInterfaces()
 	.SingleInstance();
@@ -97,9 +115,15 @@ ElasticUserStore(
 	Uri connectionString,							// where's your elasticsearch. Something like http://localhost:9200/ or http://users.tesla-co.internal/
 	string indexName = "users",						// what index we're storing the users under. Defaults to "users"
 	string entityName = "user",						// type name for each user. Defaults to "user"
-	bool forceRecreate = false,						// if index exists, drop it before creating it again.
-	Action<ElasticUserStore<TUser>> seed = null		// if the index was created, run this
+	bool forceRecreate = false						// if index exists, drop it before creating it again.
 	 )
+
+protected override async Task SeedAsync()
+{
+  // Put your seeding logic here, stuff that's 
+  // executed when the index is created 
+}
+
 ```
 
 Contributing
@@ -111,3 +135,4 @@ Copyright and license
 ---------------------
 
 elastic-identity is licenced under the MIT license. Refer to LICENSE for more information.
+
