@@ -1,8 +1,6 @@
 Elastic Identity - The ASP.NET Identity Provider for ElasticSearch
 ==================================================================
 
-Piglet is a library for lexing and parsing text, in the spirit of those big parser and lexer genererators such as bison, antlr and flex. While not as feature packed as those, it is also a whole lot leaner and much easier to understand.
-
 Why use elastic-identity
 ========================
 
@@ -116,9 +114,15 @@ ElasticUserStore(
 	Uri connectionString,							// where's your elasticsearch. Something like http://localhost:9200/ or http://users.tesla-co.internal/
 	string indexName = "users",						// what index we're storing the users under. Defaults to "users"
 	string entityName = "user",						// type name for each user. Defaults to "user"
-	bool forceRecreate = false,						// if index exists, drop it before creating it again.
-	Action<ElasticUserStore<TUser>> seed = null		// if the index was created, run this
+	bool forceRecreate = false						// if index exists, drop it before creating it again.
 	 )
+
+protected override async Task SeedAsync()
+{
+  // Put your seeding logic here, stuff that's 
+  // executed when the index is created 
+}
+
 ```
 
 Contributing
