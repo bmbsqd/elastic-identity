@@ -65,6 +65,7 @@
     <Compile Include="ElasticUser.cs" />
     <Compile Include="ElasticUserConfirmed.cs" />
     <Compile Include="ElasticUserEmail.cs" />
+    <Compile Include="ElasticUserLoginInfo.cs" />
     <Compile Include="ElasticUserPhone.cs" />
     <Compile Include="ElasticUserStore.cs" />
     <Compile Include="ElasticUserStoreTraceEventArgs.cs" />

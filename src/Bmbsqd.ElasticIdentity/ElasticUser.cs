@@ -33,14 +33,14 @@ namespace Bmbsqd.ElasticIdentity
 	[ElasticType( IdProperty = "userName" )]
 	public class ElasticUser : IUser
 	{
-		private readonly List<UserLoginInfo> _logins;
+		private readonly List<ElasticUserLoginInfo> _logins;
 		private readonly HashSet<ElasticClaim> _claims;
 		private readonly HashSet<string> _roles;
 		private string _userName;
 
 		public ElasticUser()
 		{
-			_logins = new List<UserLoginInfo>();
+            _logins = new List<ElasticUserLoginInfo>();
 			_claims = new HashSet<ElasticClaim>();
 			_roles = new HashSet<string>();
 		}
@@ -74,7 +74,7 @@ namespace Bmbsqd.ElasticIdentity
 		public string SecurityStamp { get; set; }
 
 		[JsonProperty( DefaultValueHandling = DefaultValueHandling.Ignore )]
-		public List<UserLoginInfo> Logins
+        public List<ElasticUserLoginInfo> Logins
 		{
 			get { return _logins; }
 		}
