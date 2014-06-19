@@ -57,8 +57,8 @@ namespace Bmbsqd.ElasticIdentity
 		{
 			var settings = new ConnectionSettings( connectionString )
 				.SetDefaultIndex( indexName )
-				.MapDefaultTypeIndices( x => x.Add( typeof(TUser), indexName ) )
-				.MapDefaultTypeNames( x => x.Add( typeof(TUser), entityName ) )
+				.MapDefaultTypeIndices( x => x.Add( typeof( TUser ), indexName ) )
+				.MapDefaultTypeNames( x => x.Add( typeof( TUser ), entityName ) )
 				.DisablePing()
 				.SetJsonSerializerSettingsModifier( s => s.Converters.Add( new ElasticEnumConverter() ) );
 			return new ElasticClient( settings );
@@ -110,7 +110,7 @@ namespace Bmbsqd.ElasticIdentity
 				throw new ArgumentException( "Invalid Characters in indexName, must be all lowercase", "indexName" );
 			}
 			if( entityName == null ) throw new ArgumentNullException( "entityName" );
-			
+
 
 			_connection = CreateClient( connectionString, indexName, entityName );
 			SetupIndex( indexName, entityName, forceRecreate );
@@ -178,22 +178,22 @@ namespace Bmbsqd.ElasticIdentity
 			return result.Documents.FirstOrDefault();
 		}
 
-        public Task AddLoginAsync( TUser user, UserLoginInfo login )
-        {
-            if ( user == null ) throw new ArgumentNullException( "user" );
-            if ( login == null ) throw new ArgumentNullException( "login" );
+		public Task AddLoginAsync( TUser user, UserLoginInfo login )
+		{
+			if( user == null ) throw new ArgumentNullException( "user" );
+			if( login == null ) throw new ArgumentNullException( "login" );
 
-            user.Logins.Add( new ElasticUserLoginInfo() { LoginProvider = login.LoginProvider, ProviderKey = login.ProviderKey });
-            return DoneTask;
-        }
+			user.Logins.Add( new ElasticUserLoginInfo() { LoginProvider = login.LoginProvider, ProviderKey = login.ProviderKey } );
+			return DoneTask;
+		}
 
-        public Task RemoveLoginAsync( TUser user, UserLoginInfo login )
-        {
-            if ( user == null ) throw new ArgumentNullException( "user" );
-            if ( login == null ) throw new ArgumentNullException( "login" );
-            user.Logins.RemoveAll(x => x.LoginProvider == login.LoginProvider && x.ProviderKey == login.ProviderKey );
-            return DoneTask;
-        }
+		public Task RemoveLoginAsync( TUser user, UserLoginInfo login )
+		{
+			if( user == null ) throw new ArgumentNullException( "user" );
+			if( login == null ) throw new ArgumentNullException( "login" );
+			user.Logins.RemoveAll( x => x.LoginProvider == login.LoginProvider && x.ProviderKey == login.ProviderKey );
+			return DoneTask;
+		}
 
 		public Task<IList<UserLoginInfo>> GetLoginsAsync( TUser user )
 		{
@@ -251,13 +251,13 @@ namespace Bmbsqd.ElasticIdentity
 			return DoneTask;
 		}
 
-        public Task RemoveFromRoleAsync( TUser user, string role )
-        {
-            if ( user == null ) throw new ArgumentNullException( "user" );
-            if ( role == null ) throw new ArgumentNullException( "role" );
-            user.Roles.Remove( role );
-            return DoneTask;
-        }
+		public Task RemoveFromRoleAsync( TUser user, string role )
+		{
+			if( user == null ) throw new ArgumentNullException( "user" );
+			if( role == null ) throw new ArgumentNullException( "role" );
+			user.Roles.Remove( role );
+			return DoneTask;
+		}
 
 		public Task<IList<string>> GetRolesAsync( TUser user )
 		{

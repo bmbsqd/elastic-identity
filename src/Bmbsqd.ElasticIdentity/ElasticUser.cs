@@ -22,6 +22,7 @@
 	CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 #endregion
+
 using System.Collections.Generic;
 using System.ComponentModel;
 using Microsoft.AspNet.Identity;
@@ -40,7 +41,7 @@ namespace Bmbsqd.ElasticIdentity
 
 		public ElasticUser()
 		{
-            _logins = new List<ElasticUserLoginInfo>();
+			_logins = new List<ElasticUserLoginInfo>();
 			_claims = new HashSet<ElasticClaim>();
 			_roles = new HashSet<string>();
 		}
@@ -70,11 +71,11 @@ namespace Bmbsqd.ElasticIdentity
 		public string PasswordHash { get; set; }
 
 		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.not_analyzed )]
-		[JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+		[JsonProperty( DefaultValueHandling = DefaultValueHandling.Ignore )]
 		public string SecurityStamp { get; set; }
 
 		[JsonProperty( DefaultValueHandling = DefaultValueHandling.Ignore )]
-        public List<ElasticUserLoginInfo> Logins
+		public List<ElasticUserLoginInfo> Logins
 		{
 			get { return _logins; }
 		}
