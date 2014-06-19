@@ -178,21 +178,22 @@ namespace Bmbsqd.ElasticIdentity
 			return result.Documents.FirstOrDefault();
 		}
 
-		public Task AddLoginAsync( TUser user, UserLoginInfo login )
-		{
-			if( user == null ) throw new ArgumentNullException( "user" );
-			if( login == null ) throw new ArgumentNullException( "login" );
-			user.Logins.Add( login );
-			return DoneTask;
-		}
+        public Task AddLoginAsync( TUser user, UserLoginInfo login )
+        {
+            if ( user == null ) throw new ArgumentNullException( "user" );
+            if ( login == null ) throw new ArgumentNullException( "login" );
 
-		public Task RemoveLoginAsync( TUser user, UserLoginInfo login )
-		{
-			if( user == null ) throw new ArgumentNullException( "user" );
-			if( login == null ) throw new ArgumentNullException( "login" );
-			user.Logins.RemoveAll( x => x.LoginProvider == login.LoginProvider && x.ProviderKey == login.ProviderKey );
-			return DoneTask;
-		}
+            user.Logins.Add( new ElasticUserLoginInfo() { LoginProvider = login.LoginProvider, ProviderKey = login.ProviderKey });
+            return DoneTask;
+        }
+
+        public Task RemoveLoginAsync( TUser user, UserLoginInfo login )
+        {
+            if ( user == null ) throw new ArgumentNullException( "user" );
+            if ( login == null ) throw new ArgumentNullException( "login" );
+            user.Logins.RemoveAll(x => x.LoginProvider == login.LoginProvider && x.ProviderKey == login.ProviderKey );
+            return DoneTask;
+        }
 
 		public Task<IList<UserLoginInfo>> GetLoginsAsync( TUser user )
 		{
@@ -250,13 +251,13 @@ namespace Bmbsqd.ElasticIdentity
 			return DoneTask;
 		}
 
-		public Task RemoveFromRoleAsync( TUser user, string role )
-		{
-			if( user == null ) throw new ArgumentNullException( "user" );
-			if( role == null ) throw new ArgumentNullException( "role" );
-			user.Roles.Remove( role );
-			return DoneTask;
-		}
+        public Task RemoveFromRoleAsync( TUser user, string role )
+        {
+            if ( user == null ) throw new ArgumentNullException( "user" );
+            if ( role == null ) throw new ArgumentNullException( "role" );
+            user.Roles.Remove( role );
+            return DoneTask;
+        }
 
 		public Task<IList<string>> GetRolesAsync( TUser user )
 		{
