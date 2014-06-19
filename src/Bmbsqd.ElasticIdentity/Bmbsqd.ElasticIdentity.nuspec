@@ -3,7 +3,7 @@
 <package>
 	<metadata>
 		<id>Bmbsqd.ElasticIdentity</id>
-		<version>1.0.0-beta1</version>
+		<version>1.0.0-beta2</version>
 		<title>Identity Provider for Elasticsearch</title>
 		<authors>BMBSQD</authors>
 		<owners>BMBSQD</owners>
@@ -12,7 +12,7 @@
 		<projectUrl>https://github.com/bmbsqd/elastic-identity</projectUrl>
 		<iconUrl>http://www.gravatar.com/avatar/778137d42770f739df317b3cde5454ed.png?s=128</iconUrl>
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
-		<releaseNotes>Update for AspNet Identity 2.x, Nest 1.x</releaseNotes>
+		<releaseNotes>fixed analyzer settings for ElasticUserLoginInfo, Update for AspNet Identity 2.x, Nest 1.x</releaseNotes>
 		<copyright>© Bombsquad Inc 2014</copyright>
 		<tags>identity elasticsearch elastic search</tags>
 		<!--<references></references>-->
