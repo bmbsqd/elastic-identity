@@ -22,6 +22,10 @@ Reversion History
 How to use
 ==========
 
+Install
+-------
+Get it from [nuget.org](https://www.nuget.org/packages/Bmbsqd.ElasticIdentity)
+
 Simple
 ------
 
