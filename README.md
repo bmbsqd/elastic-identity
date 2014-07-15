@@ -134,6 +134,7 @@ Contributing
 ------------
 
 Yes please
+Thanks to [tstojecki](https://github.com/tstojecki) for the NEST-RC1 upgrade
 
 Copyright and license
 ---------------------
