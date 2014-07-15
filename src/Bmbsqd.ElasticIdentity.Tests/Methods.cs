@@ -1,4 +1,5 @@
 ﻿#region MIT License
+
 // /*
 // 	The MIT License (MIT)
 // 
@@ -21,11 +22,10 @@
 // 	IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // 	CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // */
+
 #endregion
 
-using System;
 using System.Threading.Tasks;
-using Microsoft.AspNet.Identity;
 using NUnit.Framework;
 
 namespace Bmbsqd.ElasticIdentity.Tests
@@ -37,27 +37,20 @@ namespace Bmbsqd.ElasticIdentity.Tests
 
 		private ElasticUserStore<ElasticUser> CreateStore()
 		{
-			return new ElasticUserStore<ElasticUser>( _connectionString, forceRecreate: true );
-		}
-
-		private async Task CreateUser( IUserStore<ElasticUser> store, ElasticUser user )
-		{
-			var manager = new UserManager<ElasticUser>( store );
-			AssertIdentityResult(
-				await manager.CreateAsync( user, "some-password" ) );
+			return new ElasticUserStore<ElasticUser>( _connectionString, indexName: _defaultIndex, forceRecreate: true );
 		}
 
 		[TearDown]
-		public void Done()
+		public async void Done()
 		{
-			Client.DeleteIndex( i => i.Index( "users" ) );
+			await Client.DeleteIndexAsync( i => i.Index( _defaultIndex ) );
 		}
 
 		[Test]
 		public async Task CreateUser()
 		{
 			var store = CreateStore();
-			await CreateUser( store, new ElasticUser( UserName ) {
+			var user = new ElasticUser( UserName ) {
 				Phone = new ElasticUserPhone {
 					Number = "555 123 1234",
 					IsConfirmed = true
@@ -66,23 +59,64 @@ namespace Bmbsqd.ElasticIdentity.Tests
 					Address = "hello@world.com",
 					IsConfirmed = false
 				}
-			} );
+			};
 
-			var user = await store.FindByNameAsync( UserName );
+			await store.CreateAsync( user );
+
+			user = await store.FindByNameAsync( UserName );
 			Assert.That( user, Is.Not.Null );
 			Assert.That( user.UserName, Is.EqualTo( UserName ) );
+		}
+
+		[Test]
+		public async Task FindById()
+		{
+			var store = CreateStore();
+			var user = new ElasticUser( UserName );
+
+			await store.CreateAsync( user );
+
+			var elasticUser = await store.FindByIdAsync( user.Id );
+
+			Assert.IsNotNull( elasticUser );
+			Assert.AreEqual( user.Id, elasticUser.Id );
+
+			// should not throw when 404 is returned, it should return null instead to indicate resource not found
+			var user404 = await store.FindByIdAsync( "missing" );
+
+			Assert.IsNull( user404 );
+		}
+
+		[Test]
+		public async Task FindByEmail()
+		{
+			var store = CreateStore();
+			var user = new ElasticUser( UserName ) {
+				Email = new ElasticUserEmail {
+					Address = "hello@world.com",
+					IsConfirmed = false
+				}
+			};
+
+			await store.CreateAsync( user );
+
+			var elasticUser = await store.FindByEmailAsync( user.Email.Address );
+
+			Assert.IsNotNull( elasticUser );
+			Assert.AreEqual( user.EmailAddress, elasticUser.EmailAddress );
 		}
 
 		[Test]
 		public async Task DeleteUser()
 		{
 			var store = CreateStore();
-			var elasticUser = new ElasticUser( UserName );
-			await CreateUser( store, elasticUser );
+			var user = new ElasticUser( UserName );
 
-			await store.DeleteAsync( elasticUser );
+			await store.CreateAsync( user );
 
-			var user = await store.FindByNameAsync( elasticUser.UserName );
+			await store.DeleteAsync( user );
+
+			user = await store.FindByNameAsync( user.UserName );
 			Assert.That( user, Is.Null );
 		}
 
@@ -90,17 +124,17 @@ namespace Bmbsqd.ElasticIdentity.Tests
 		public async Task UpdateUser()
 		{
 			var store = CreateStore();
-			var elasticUser = new ElasticUser( UserName );
-			await CreateUser( store, elasticUser );
+			var user = new ElasticUser( UserName );
 
-			var user = await store.FindByIdAsync( elasticUser.UserName );
+			await store.CreateAsync( user );
+
+			user = await store.FindByIdAsync( user.Id );
 			user.Roles.Add( "hello" );
 
 			await store.UpdateAsync( user );
-			user = await store.FindByIdAsync( elasticUser.Id );
+			user = await store.FindByIdAsync( user.Id );
 
 			Assert.That( user.Roles, Contains.Item( "hello" ) );
-			
 		}
 	}
 }

@@ -1,4 +1,5 @@
 ﻿#region MIT License
+
 /*
 	The MIT License (MIT)
 
@@ -21,7 +22,9 @@
 	IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 	CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
+
 #endregion
+
 using System;
 using System.Security.Claims;
 using Nest;
@@ -30,10 +33,10 @@ namespace Bmbsqd.ElasticIdentity
 {
 	public class ElasticClaim : IEquatable<ElasticClaim>
 	{
-		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.not_analyzed )]
+		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.NotAnalyzed )]
 		public string Type { get; set; }
 
-		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.not_analyzed )]
+		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.NotAnalyzed )]
 		public string Value { get; set; }
 
 		public ElasticClaim()
