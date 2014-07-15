@@ -1,4 +1,5 @@
 ﻿#region MIT License
+
 /*
 	The MIT License (MIT)
 
@@ -21,6 +22,7 @@
 	IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 	CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
+
 #endregion
 
 using System;
@@ -46,8 +48,8 @@ namespace Bmbsqd.ElasticIdentity
 		IUserPasswordStore<TUser>,
 		IUserSecurityStampStore<TUser>,
 		IUserTwoFactorStore<TUser, string>,
-		IUserEmailStore<TUser, string>,
-		IUserPhoneNumberStore<TUser, string>
+		IUserEmailStore<TUser>,
+		IUserPhoneNumberStore<TUser>
 		//IUserLockoutStore<TUser,string>
 		where TUser : ElasticUser
 	{
@@ -64,13 +66,12 @@ namespace Bmbsqd.ElasticIdentity
 			return new ElasticClient( settings );
 		}
 
-		private async Task SetupIndexAsync( IElasticClient connection, string indexName, string entityName, bool forceRecreate )
+		private async Task SetupIndexAsync( IElasticClient connection, string indexName, string entityName, bool forceCreate )
 		{
-
 			//var exists = Wrap( await connection.IndexExistsAsync( x => x.Index( indexName ) ).ConfigureAwait( false ) ).Exists; // TODO: Async Version fails in NEST 1.0.0-beta1
 			var exists = Wrap( connection.IndexExists( x => x.Index( indexName ) ) ).Exists;
 
-			if( exists && forceRecreate ) {
+			if( exists && forceCreate ) {
 				Wrap( await connection.DeleteIndexAsync( x => x.Index( indexName ) ).ConfigureAwait( false ) );
 				exists = false;
 			}
@@ -182,7 +183,6 @@ namespace Bmbsqd.ElasticIdentity
 			// ShouldBe: but Nest throws on 404
 			//var result = Wrap( await _connection.GetAsync<TUser>( x => x.Id( UserNameUtils.FormatUserName( userName ) ) ) );
 			//return result.Source;
-
 		}
 
 		public async Task<TUser> FindByEmailAsync( string email )

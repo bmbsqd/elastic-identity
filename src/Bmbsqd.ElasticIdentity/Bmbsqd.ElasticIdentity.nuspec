@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 
-<package>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
 	<metadata>
 		<id>Bmbsqd.ElasticIdentity</id>
-		<version>1.0.0-beta1</version>
+		<version>1.0.0-beta1+async</version>
 		<title>Identity Provider for Elasticsearch</title>
 		<authors>BMBSQD</authors>
 		<owners>BMBSQD</owners>

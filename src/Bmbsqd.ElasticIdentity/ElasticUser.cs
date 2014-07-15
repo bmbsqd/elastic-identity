@@ -1,4 +1,5 @@
 ﻿#region MIT License
+
 /*
 	The MIT License (MIT)
 
@@ -21,7 +22,9 @@
 	IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 	CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
+
 #endregion
+
 using System.Collections.Generic;
 using System.ComponentModel;
 using Microsoft.AspNet.Identity;
@@ -70,7 +73,7 @@ namespace Bmbsqd.ElasticIdentity
 		public string PasswordHash { get; set; }
 
 		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.not_analyzed )]
-		[JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+		[JsonProperty( DefaultValueHandling = DefaultValueHandling.Ignore )]
 		public string SecurityStamp { get; set; }
 
 		[JsonProperty( DefaultValueHandling = DefaultValueHandling.Ignore )]
@@ -99,7 +102,7 @@ namespace Bmbsqd.ElasticIdentity
 
 
 		/// <summary>
-		/// Convenience property
+		///     Convenience property
 		/// </summary>
 		[ElasticProperty( OptOut = true )]
 		[JsonIgnore]

@@ -6,6 +6,5 @@ namespace Bmbsqd.ElasticIdentity
 	{
 		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.not_analyzed )]
 		public string Address { get; set; }
-
 	}
 }
