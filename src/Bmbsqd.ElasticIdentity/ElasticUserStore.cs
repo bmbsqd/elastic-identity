@@ -56,7 +56,7 @@ namespace Bmbsqd.ElasticIdentity
 		private static IElasticClient CreateClient( Uri connectionString, string indexName, string entityName )
 		{
 			var settings = new ConnectionSettings( connectionString )
-				.SetDefaultIndex( indexName )
+				.SetDefaultIndex( indexName )                
 				.MapDefaultTypeIndices( x => x.Add( typeof(TUser), indexName ) )
 				.MapDefaultTypeNames( x => x.Add( typeof(TUser), entityName ) )
 				.DisablePing()
@@ -128,7 +128,7 @@ namespace Bmbsqd.ElasticIdentity
 		private async Task CreateOrUpdateAsync( TUser user, bool create )
 		{
 			if( user == null ) throw new ArgumentNullException( "user" );
-			Wrap( await _connection.IndexAsync( user, x => x.Refresh().OpType( create ? OpTypeOptions.Create : OpTypeOptions.Index ) ) );
+			Wrap( await _connection.IndexAsync( user, x => x.Refresh().OpType( create ? OpType.Create : OpType.Index ) ) );
 		}
 
 		public Task CreateAsync( TUser user )
@@ -149,10 +149,11 @@ namespace Bmbsqd.ElasticIdentity
 				.Refresh() ) );
 		}
 
-		public Task<TUser> FindByIdAsync( string userId )
+		public async Task<TUser> FindByIdAsync( string userId )
 		{
 			if( userId == null ) throw new ArgumentNullException( "userId" );
-			return FindByNameAsync( userId );
+            var result = Wrap( await _connection.GetAsync<TUser>( x => x.Id( userId ) ) );
+            return result.Source;            
 		}
 
 		public async Task<TUser> FindByNameAsync( string userName )
@@ -160,11 +161,6 @@ namespace Bmbsqd.ElasticIdentity
 			if( userName == null ) throw new ArgumentNullException( "userName" );
 			var result = Wrap( await _connection.SearchAsync<TUser>( search => search.Filter( filter => filter.Term( user => user.UserName, UserNameUtils.FormatUserName( userName ) ) ) ) );
 			return result.Documents.FirstOrDefault();
-
-			// ShouldBe: but Nest throws on 404
-			//var result = Wrap( await _connection.GetAsync<TUser>( x => x.Id( UserNameUtils.FormatUserName( userName ) ) ) );
-			//return result.Source;
-
 		}
 
 		public async Task<TUser> FindByEmailAsync( string email )

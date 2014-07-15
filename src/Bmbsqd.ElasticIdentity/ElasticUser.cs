@@ -22,6 +22,7 @@
 	CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 #endregion
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using Microsoft.AspNet.Identity;
@@ -29,17 +30,19 @@ using Nest;
 using Newtonsoft.Json;
 
 namespace Bmbsqd.ElasticIdentity
-{
-	[ElasticType( IdProperty = "userName" )]
+{	
 	public class ElasticUser : IUser
 	{
 		private readonly List<ElasticUserLoginInfo> _logins;
 		private readonly HashSet<ElasticClaim> _claims;
 		private readonly HashSet<string> _roles;
 		private string _userName;
+        private string _id;
 
 		public ElasticUser()
 		{
+            _id = Guid.NewGuid().ToString();
+
             _logins = new List<ElasticUserLoginInfo>();
 			_claims = new HashSet<ElasticClaim>();
 			_roles = new HashSet<string>();
@@ -51,12 +54,12 @@ namespace Bmbsqd.ElasticIdentity
 			UserName = userName;
 		}
 
-		[JsonIgnore]
-		[ElasticProperty( OptOut = true )]
-		public string Id
-		{
-			get { return UserName; }
-		}
+        [ElasticProperty( Analyzer = "lowercaseKeyword", Index = FieldIndexOption.NotAnalyzed )]
+        public virtual string Id
+        {
+            get { return _id; }
+			set { _id = value; }
+        }
 
 		[ElasticProperty( Analyzer = "lowercaseKeyword", IncludeInAll = false )]
 		public string UserName
@@ -65,11 +68,11 @@ namespace Bmbsqd.ElasticIdentity
 			set { _userName = UserNameUtils.FormatUserName( value ); }
 		}
 
-		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.not_analyzed )]
+		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.NotAnalyzed )]
 		[JsonProperty( DefaultValueHandling = DefaultValueHandling.Ignore )]
 		public string PasswordHash { get; set; }
 
-		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.not_analyzed )]
+		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.NotAnalyzed )]
 		[JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
 		public string SecurityStamp { get; set; }
 
@@ -108,7 +111,7 @@ namespace Bmbsqd.ElasticIdentity
 			get { return Email != null ? Email.Address : null; }
 		}
 
-		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.not_analyzed )]
+		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.NotAnalyzed )]
 		[JsonProperty( DefaultValueHandling = DefaultValueHandling.Ignore )]
 		[DefaultValue( false )]
 		public bool TwoFactorAuthenticationEnabled { get; set; }

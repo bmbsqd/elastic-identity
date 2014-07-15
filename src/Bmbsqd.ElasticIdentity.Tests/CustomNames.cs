@@ -71,13 +71,13 @@ namespace Bmbsqd.ElasticIdentity.Tests
 				AssertIdentityResult( await userManager.CreateAsync( user, "some password" ) );
 
 
-				var response = Client.Get<ElasticUser>( user.UserName, indexName, entityName );
+				var response = Client.Get<ElasticUser>( user.Id, indexName, entityName );
 				Assert.That( response.Source, Is.Not.Null );
 				Assert.That( response.Source.UserName, Is.EqualTo( user.UserName ) );
 
 			}
 			finally {
-				//Client.DeleteIndex( i => i.Index( indexName ) );
+				Client.DeleteIndex( i => i.Index( indexName ) );
 			}
 
 		}
