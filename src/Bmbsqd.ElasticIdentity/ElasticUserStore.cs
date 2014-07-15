@@ -1,4 +1,5 @@
 ﻿#region MIT License
+
 /*
 	The MIT License (MIT)
 
@@ -21,6 +22,7 @@
 	IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 	CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
+
 #endregion
 
 using System;
@@ -57,8 +59,8 @@ namespace Bmbsqd.ElasticIdentity
 		{
 			var settings = new ConnectionSettings( connectionString )
 				.SetDefaultIndex( indexName )
-				.MapDefaultTypeIndices( x => x.Add( typeof( TUser ), indexName ) )
-				.MapDefaultTypeNames( x => x.Add( typeof( TUser ), entityName ) )
+				.MapDefaultTypeIndices( x => x.Add( typeof(TUser), indexName ) )
+				.MapDefaultTypeNames( x => x.Add( typeof(TUser), entityName ) )
 				.DisablePing()
 				.SetJsonSerializerSettingsModifier( s => s.Converters.Add( new ElasticEnumConverter() ) );
 			return new ElasticClient( settings );
@@ -76,7 +78,7 @@ namespace Bmbsqd.ElasticIdentity
 						.Analysis( a => a
 							.Analyzers( x => x.Add( "lowercaseKeyword", new CustomAnalyzer {
 								Tokenizer = "keyword",
-								Filter = new[] { "standard", "lowercase" }
+								Filter = new[] {"standard", "lowercase"}
 							} ) )
 						)
 						.AddMapping<TUser>( m => m
@@ -87,7 +89,10 @@ namespace Bmbsqd.ElasticIdentity
 					) );
 				AssertIndexCreateSuccess( createResponse );
 
-				Task.Run( () => SeedAsync() ).Wait(); // ASP.NET Global.asax doesn't like async operations if not wrapped in Task.Run()
+				// ASP.NET Global.asax doesn't like async operations. One way 
+				// around that is to wrap it in a new task, it's own 
+				// synchronization context etc
+				Task.Run( () => SeedAsync() ).Wait(); 
 			}
 		}
 
@@ -128,7 +133,7 @@ namespace Bmbsqd.ElasticIdentity
 		private async Task CreateOrUpdateAsync( TUser user, bool create )
 		{
 			if( user == null ) throw new ArgumentNullException( "user" );
-			Wrap( await _connection.IndexAsync( user, x => x.Refresh().OpType( create ? OpTypeOptions.Create : OpTypeOptions.Index ) ) );
+			Wrap( await _connection.IndexAsync( user, x => x.Refresh().OpType( create ? OpType.Create : OpType.Index ) ) );
 		}
 
 		public Task CreateAsync( TUser user )
@@ -149,10 +154,11 @@ namespace Bmbsqd.ElasticIdentity
 				.Refresh() ) );
 		}
 
-		public Task<TUser> FindByIdAsync( string userId )
+		public async Task<TUser> FindByIdAsync( string userId )
 		{
 			if( userId == null ) throw new ArgumentNullException( "userId" );
-			return FindByNameAsync( userId );
+			var result = Wrap( await _connection.GetAsync<TUser>( x => x.Id( userId ) ) );
+			return result.Source;
 		}
 
 		public async Task<TUser> FindByNameAsync( string userName )
@@ -160,11 +166,6 @@ namespace Bmbsqd.ElasticIdentity
 			if( userName == null ) throw new ArgumentNullException( "userName" );
 			var result = Wrap( await _connection.SearchAsync<TUser>( search => search.Filter( filter => filter.Term( user => user.UserName, UserNameUtils.FormatUserName( userName ) ) ) ) );
 			return result.Documents.FirstOrDefault();
-
-			// ShouldBe: but Nest throws on 404
-			//var result = Wrap( await _connection.GetAsync<TUser>( x => x.Id( UserNameUtils.FormatUserName( userName ) ) ) );
-			//return result.Source;
-
 		}
 
 		public async Task<TUser> FindByEmailAsync( string email )
@@ -183,7 +184,10 @@ namespace Bmbsqd.ElasticIdentity
 			if( user == null ) throw new ArgumentNullException( "user" );
 			if( login == null ) throw new ArgumentNullException( "login" );
 
-			user.Logins.Add( new ElasticUserLoginInfo() { LoginProvider = login.LoginProvider, ProviderKey = login.ProviderKey } );
+			user.Logins.Add( new ElasticUserLoginInfo {
+				LoginProvider = login.LoginProvider, 
+				ProviderKey = login.ProviderKey
+			} );
 			return DoneTask;
 		}
 
@@ -198,7 +202,10 @@ namespace Bmbsqd.ElasticIdentity
 		public Task<IList<UserLoginInfo>> GetLoginsAsync( TUser user )
 		{
 			if( user == null ) throw new ArgumentNullException( "user" );
-			return Task.FromResult( (IList<UserLoginInfo>)user.Logins );
+			return Task.FromResult<IList<UserLoginInfo>>( user
+				.Logins
+				.Select( x => new UserLoginInfo( x.LoginProvider, x.ProviderKey ) )
+				.ToList() );
 		}
 
 		public async Task<TUser> FindAsync( UserLoginInfo login )
@@ -329,7 +336,7 @@ namespace Bmbsqd.ElasticIdentity
 			if( user == null ) throw new ArgumentNullException( "user" );
 			user.Email = email == null
 				? null
-				: new ElasticUserEmail { Address = email };
+				: new ElasticUserEmail {Address = email};
 			return DoneTask;
 		}
 
@@ -368,7 +375,7 @@ namespace Bmbsqd.ElasticIdentity
 			if( user == null ) throw new ArgumentNullException( "user" );
 			user.Phone = phoneNumber == null
 				? null
-				: new ElasticUserPhone { Number = phoneNumber };
+				: new ElasticUserPhone {Number = phoneNumber};
 			return DoneTask;
 		}
 
@@ -406,7 +413,7 @@ namespace Bmbsqd.ElasticIdentity
 	public abstract class ElasticUserStore
 	{
 		protected static readonly Task DoneTask = Task.FromResult( true );
-		protected const int DefaultSizeForAll = 1000 * 1000;
+		protected const int DefaultSizeForAll = 1000*1000;
 		public event EventHandler<ElasticUserStoreTraceEventArgs> Trace;
 
 		protected virtual void OnTrace( string operation, IElasticsearchResponse response )

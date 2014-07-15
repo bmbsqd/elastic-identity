@@ -1,4 +1,5 @@
-﻿#region MIT License
+#region MIT License
+
 /*
 	The MIT License (MIT)
 
@@ -21,6 +22,7 @@
 	IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 	CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
+
 #endregion
 
 using Nest;
@@ -29,10 +31,10 @@ namespace Bmbsqd.ElasticIdentity
 {
 	public class ElasticUserLoginInfo
 	{
-		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.not_analyzed )]
+		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.NotAnalyzed )]
 		public string LoginProvider { get; set; }
 
-		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.not_analyzed )]
+		[ElasticProperty( IncludeInAll = false, Index = FieldIndexOption.NotAnalyzed )]
 		public string ProviderKey { get; set; }
 	}
 }

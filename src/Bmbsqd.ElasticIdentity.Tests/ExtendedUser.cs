@@ -1,4 +1,5 @@
 ﻿#region MIT License
+
 // /*
 // 	The MIT License (MIT)
 // 
@@ -21,6 +22,7 @@
 // 	IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // 	CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // */
+
 #endregion
 
 using System;
@@ -34,7 +36,6 @@ namespace Bmbsqd.ElasticIdentity.Tests
 	[TestFixture]
 	public class ExtendedUser : TestBase
 	{
-
 		public abstract class CarBase
 		{
 			public string LicensePlate { get; set; }
@@ -79,7 +80,6 @@ namespace Bmbsqd.ElasticIdentity.Tests
 		}
 
 
-
 		[Test]
 		public async Task TestExtendedProperties()
 		{
@@ -115,7 +115,6 @@ namespace Bmbsqd.ElasticIdentity.Tests
 
 				Assert.That( teslaUser.Car, Is.AssignableTo<Tesla>(), "Tesla Car is not Tesla" );
 				Assert.That( koenigseggUser.Car, Is.AssignableTo<Koenigsegg>(), "Koenigsegg Car is not Koenigsegg" );
-
 			}
 			finally {
 				Client.DeleteIndex( i => i.Index( indexName ) );
