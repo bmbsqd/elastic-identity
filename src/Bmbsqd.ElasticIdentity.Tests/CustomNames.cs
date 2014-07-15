@@ -1,4 +1,5 @@
 ﻿#region MIT License
+
 // /*
 // 	The MIT License (MIT)
 // 
@@ -21,8 +22,9 @@
 // 	IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // 	CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // */
+
 #endregion
-using System;
+
 using System.Threading.Tasks;
 using Microsoft.AspNet.Identity;
 using Nest;
@@ -34,15 +36,19 @@ namespace Bmbsqd.ElasticIdentity.Tests
 	public class CustomNames : TestBase
 	{
 		[Test]
-		public void CustomIndexName()
+		public async Task CustomIndexName()
 		{
 			const string indexName = "hello";
 			Assert.False( Client.IndexExists( i => i.Index( indexName ) ).Exists );
-			new ElasticUserStore<ElasticUser>(
+
+			var store  = new ElasticUserStore<ElasticUser>(
 				_connectionString,
 				indexName: indexName,
 				entityName: "world",
 				forceRecreate: true );
+
+			await store.ConnectionSetup();
+
 			Assert.True( Client.IndexExists( i => i.Index( indexName ) ).Exists );
 			Client.DeleteIndex( i => i.Index( indexName ) );
 		}
@@ -53,7 +59,6 @@ namespace Bmbsqd.ElasticIdentity.Tests
 			const string indexName = "some-index";
 			const string entityName = "world";
 			try {
-				
 				var userStore = new ElasticUserStore<ElasticUser>(
 					_connectionString,
 					indexName: indexName,
@@ -71,15 +76,13 @@ namespace Bmbsqd.ElasticIdentity.Tests
 				AssertIdentityResult( await userManager.CreateAsync( user, "some password" ) );
 
 
-				var response = Client.Get<ElasticUser>( user.UserName, indexName, entityName );
+				var response = Client.Get<ElasticUser>( user.Id, indexName, entityName );
 				Assert.That( response.Source, Is.Not.Null );
 				Assert.That( response.Source.UserName, Is.EqualTo( user.UserName ) );
-
 			}
 			finally {
-				//Client.DeleteIndex( i => i.Index( indexName ) );
+				Client.DeleteIndex( i => i.Index( indexName ) );
 			}
-
 		}
 	}
 }

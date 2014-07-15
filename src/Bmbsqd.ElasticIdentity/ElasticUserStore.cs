@@ -48,8 +48,8 @@ namespace Bmbsqd.ElasticIdentity
 		IUserPasswordStore<TUser>,
 		IUserSecurityStampStore<TUser>,
 		IUserTwoFactorStore<TUser, string>,
-		IUserEmailStore<TUser>,
-		IUserPhoneNumberStore<TUser>
+		IUserEmailStore<TUser, string>,
+		IUserPhoneNumberStore<TUser, string>
 		//IUserLockoutStore<TUser,string>
 		where TUser : ElasticUser
 	{
@@ -59,8 +59,8 @@ namespace Bmbsqd.ElasticIdentity
 		{
 			var settings = new ConnectionSettings( connectionString )
 				.SetDefaultIndex( indexName )
-				.MapDefaultTypeIndices( x => x.Add( typeof( TUser ), indexName ) )
-				.MapDefaultTypeNames( x => x.Add( typeof( TUser ), entityName ) )
+				.MapDefaultTypeIndices( x => x.Add( typeof(TUser), indexName ) )
+				.MapDefaultTypeNames( x => x.Add( typeof(TUser), entityName ) )
 				.DisablePing()
 				.SetJsonSerializerSettingsModifier( s => s.Converters.Add( new ElasticEnumConverter() ) );
 			return new ElasticClient( settings );
@@ -68,8 +68,7 @@ namespace Bmbsqd.ElasticIdentity
 
 		private async Task SetupIndexAsync( IElasticClient connection, string indexName, string entityName, bool forceCreate )
 		{
-			//var exists = Wrap( await connection.IndexExistsAsync( x => x.Index( indexName ) ).ConfigureAwait( false ) ).Exists; // TODO: Async Version fails in NEST 1.0.0-beta1
-			var exists = Wrap( connection.IndexExists( x => x.Index( indexName ) ) ).Exists;
+			var exists = Wrap( await connection.IndexExistsAsync( x => x.Index( indexName ) ).ConfigureAwait( false ) ).Exists;
 
 			if( exists && forceCreate ) {
 				Wrap( await connection.DeleteIndexAsync( x => x.Index( indexName ) ).ConfigureAwait( false ) );
@@ -77,20 +76,22 @@ namespace Bmbsqd.ElasticIdentity
 			}
 
 			if( !exists ) {
-				var createResponse = Wrap( await connection.CreateIndexAsync( indexName,
-					createIndexDescriptor => createIndexDescriptor
-						.Analysis( a => a
-							.Analyzers( x => x.Add( "lowercaseKeyword", new CustomAnalyzer {
-								Tokenizer = "keyword",
-								Filter = new[] { "standard", "lowercase" }
-							} ) )
-						)
-						.AddMapping<TUser>( m => m
-							.MapFromAttributes()
-							.IncludeInAll( false )
-							.Type( entityName )
-						)
+				var createResponse = Wrap( await connection.CreateIndexAsync( createIndexDescriptor => createIndexDescriptor
+					.Index( indexName )
+					.Analysis( a => a
+						.Analyzers( x => x.Add( "lowercaseKeyword", new CustomAnalyzer {
+							Tokenizer = "keyword",
+							Filter = new[] {"standard", "lowercase"}
+						} ) )
+					)
+					.AddMapping<TUser>( m => m
+						.MapFromAttributes()
+						.IncludeInAll( false )
+						.IdField( x => x.SetPath( "id" ) )
+						.Type( entityName )
+					)
 					).ConfigureAwait( false ) );
+
 				AssertIndexCreateSuccess( createResponse );
 				await SeedAsync().ConfigureAwait( false );
 			}
@@ -141,11 +142,16 @@ namespace Bmbsqd.ElasticIdentity
 			get { return _connection.Value.ConfigureAwait( false ); }
 		}
 
+		public async Task ConnectionSetup()
+		{
+			await Connection;
+		}
+
 		private async Task CreateOrUpdateAsync( TUser user, bool create )
 		{
 			if( user == null ) throw new ArgumentNullException( "user" );
 			var connection = await Connection;
-			Wrap( await connection.IndexAsync( user, x => x.Refresh().OpType( create ? OpTypeOptions.Create : OpTypeOptions.Index ) ) );
+			Wrap( await connection.IndexAsync( user, x => x.Refresh().OpType( create ? OpType.Create : OpType.Index ) ) );
 		}
 
 		public Task CreateAsync( TUser user )
@@ -167,10 +173,12 @@ namespace Bmbsqd.ElasticIdentity
 				.Refresh() ) );
 		}
 
-		public Task<TUser> FindByIdAsync( string userId )
+		public async Task<TUser> FindByIdAsync( string userId )
 		{
 			if( userId == null ) throw new ArgumentNullException( "userId" );
-			return FindByNameAsync( userId );
+			var connection = await Connection;
+			var result = Wrap( await connection.GetAsync<TUser>( x => x.Id( userId ) ) );
+			return result.Source;
 		}
 
 		public async Task<TUser> FindByNameAsync( string userName )
@@ -179,10 +187,6 @@ namespace Bmbsqd.ElasticIdentity
 			var connection = await Connection;
 			var result = Wrap( await connection.SearchAsync<TUser>( search => search.Filter( filter => filter.Term( user => user.UserName, UserNameUtils.FormatUserName( userName ) ) ) ) );
 			return result.Documents.FirstOrDefault();
-
-			// ShouldBe: but Nest throws on 404
-			//var result = Wrap( await _connection.GetAsync<TUser>( x => x.Id( UserNameUtils.FormatUserName( userName ) ) ) );
-			//return result.Source;
 		}
 
 		public async Task<TUser> FindByEmailAsync( string email )
@@ -201,7 +205,11 @@ namespace Bmbsqd.ElasticIdentity
 		{
 			if( user == null ) throw new ArgumentNullException( "user" );
 			if( login == null ) throw new ArgumentNullException( "login" );
-			user.Logins.Add( login );
+
+			user.Logins.Add( new ElasticUserLoginInfo {
+				LoginProvider = login.LoginProvider,
+				ProviderKey = login.ProviderKey
+			} );
 			return DoneTask;
 		}
 
@@ -216,7 +224,10 @@ namespace Bmbsqd.ElasticIdentity
 		public Task<IList<UserLoginInfo>> GetLoginsAsync( TUser user )
 		{
 			if( user == null ) throw new ArgumentNullException( "user" );
-			return Task.FromResult( (IList<UserLoginInfo>)user.Logins );
+			return Task.FromResult<IList<UserLoginInfo>>( user
+				.Logins
+				.Select( x => new UserLoginInfo( x.LoginProvider, x.ProviderKey ) )
+				.ToList() );
 		}
 
 		public async Task<TUser> FindAsync( UserLoginInfo login )
@@ -349,7 +360,7 @@ namespace Bmbsqd.ElasticIdentity
 			if( user == null ) throw new ArgumentNullException( "user" );
 			user.Email = email == null
 				? null
-				: new ElasticUserEmail { Address = email };
+				: new ElasticUserEmail {Address = email};
 			return DoneTask;
 		}
 
@@ -388,7 +399,7 @@ namespace Bmbsqd.ElasticIdentity
 			if( user == null ) throw new ArgumentNullException( "user" );
 			user.Phone = phoneNumber == null
 				? null
-				: new ElasticUserPhone { Number = phoneNumber };
+				: new ElasticUserPhone {Number = phoneNumber};
 			return DoneTask;
 		}
 
@@ -426,7 +437,7 @@ namespace Bmbsqd.ElasticIdentity
 	public abstract class ElasticUserStore
 	{
 		protected static readonly Task DoneTask = Task.FromResult( true );
-		protected const int DefaultSizeForAll = 1000 * 1000;
+		protected const int DefaultSizeForAll = 1000*1000;
 		protected static readonly Regex _nameValidationRegex = new Regex( "^[a-z0-9-_]+$", RegexOptions.Singleline | RegexOptions.CultureInvariant );
 		public event EventHandler<ElasticUserStoreTraceEventArgs> Trace;
 
