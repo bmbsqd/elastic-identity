@@ -80,6 +80,12 @@ namespace Bmbsqd.ElasticIdentity.Tests
 
 			Assert.IsNotNull( elasticUser );
 			Assert.AreEqual( user.Id, elasticUser.Id );
+		}
+
+		[Test]
+		public async Task MissingUserShouldBeNull()
+		{
+			var store = CreateStore();
 
 			// should not throw when 404 is returned, it should return null instead to indicate resource not found
 			var user404 = await store.FindByIdAsync( "missing" );

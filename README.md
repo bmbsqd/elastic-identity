@@ -10,7 +10,9 @@ Elastic-Identity wires up the storage and repository of ElasticSearch with ASP.N
 Reversion History
 ==========
 
-- 1.0.0-beta
+- 1.0.0-rc2
+  - Fixed version problem with NEST dependency  
+- 1.0.0-rc1
   - Added support for additional services: 
      - IUserTwoFactorStore
      - IUserEmailStore
