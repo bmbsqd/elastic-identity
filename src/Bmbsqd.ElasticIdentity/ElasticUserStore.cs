@@ -87,7 +87,7 @@ namespace Bmbsqd.ElasticIdentity
 					.AddMapping<TUser>( m => m
 						.MapFromAttributes()
 						.IncludeInAll( false )
-						.IdField( x => x.SetPath( "id" ) )
+						.IdField( x => x.Path( "id" ) )
 						.Type( entityName )
 					)
 					).ConfigureAwait( false ) );
