@@ -3,7 +3,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
 	<metadata>
 		<id>Bmbsqd.ElasticIdentity</id>
-		<version>1.0.0</version>
+		<version>1.0.2</version>
 		<title>Identity Provider for Elasticsearch</title>
 		<authors>BMBSQD</authors>
 		<owners>BMBSQD</owners>
@@ -18,7 +18,7 @@
 		<!--<references></references>-->
 		<dependencies>
 			<group>
-				<dependency id="Microsoft.AspNet.Identity.Core" version="2.0" />
+				<dependency id="Microsoft.AspNet.Identity.Core" version="2.1" />
 				<dependency id="Newtonsoft.Json" version="6.0" />
 				<dependency id="NEST" version="1.0" />
 			</group>

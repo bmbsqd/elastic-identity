@@ -10,6 +10,8 @@ Elastic-Identity wires up the storage and repository of ElasticSearch with ASP.N
 Reversion History
 ==========
 
+- 1.0.2
+  - Target NEST 1.0.x
 - 1.0.0-rc2
   - Fixed version problem with NEST dependency  
 - 1.0.0-rc1
